@@ -492,11 +492,11 @@ function countTyping(e){
   typeCount+=e&&e.data?[...e.data].length:1;
   $("typeCount").textContent=typeCount;
   const m=$("typeMeter");m.classList.remove("suspect");m.firstChild.textContent="⌨ タイピング数 ";
-  clearTimeout(idleT);idleT=setTimeout(suspect,15000);
+  clearTimeout(idleT);idleT=setTimeout(suspect,7000);
 }
 function suspect(){const m=$("typeMeter");m.classList.add("suspect");m.firstChild.textContent="⌨ 在宅勤務の疑い ";}
 $("fileName").addEventListener("input",countTyping);
-idleT=setTimeout(suspect,15000);
+idleT=setTimeout(suspect,7000);
 // 命の砂時計（書き出すたびに砂が減る）
 let sand=100;
 try{const v=parseInt(localStorage.getItem("kaiken-maker-sand"),10);if(v>0&&v<=100)sand=v}catch(e){}
