@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta name="description" content="文字を入れ替えて「最後だけ垂直に伸びるグラフ」や手配書のパロディ画像を作れます。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="垂直グラフ会見メーカー">
+<meta property="og:description" content="〇〇の発展が原因であります。文字を入れ替えてパロディ画像を作れます。">
+<meta property="og:url" content="https://waldstein34.github.io/kaiken-maker/">
+<meta property="og:image" content="https://waldstein34.github.io/kaiken-maker/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="垂直グラフ会見メーカー">
+<meta name="twitter:image" content="https://waldstein34.github.io/kaiken-maker/ogp.png">
+<title>垂直グラフ スライド編集</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Noto+Serif+JP:wght@900&family=Anton&display=swap">
+<style>
+/* 上から タイトル帯 → タブ → リボン → スライド → 状態バー。スライドの文字を直接タップして編集 */
+:root{
+  --brand:#b7472a; --brand-fg:#ffffff; --brand-dark:#8e3720;
+  --chrome:#f3f2f1; --ribbon:#ffffff; --line:#d6d4d2; --fg:#252423; --muted:#605e5c;
+  --work:#e1dfdd; --select:#2b6fd6; --btn-hover:#e8e6e4;
+  --ui:"Noto Sans JP","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --chrome:#292827; --ribbon:#1f1e1d; --line:#3b3a39; --fg:#f3f2f1; --muted:#b3b0ad;
+  --work:#121110; --select:#6aa1ff; --btn-hover:#353433; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --chrome:#292827; --ribbon:#1f1e1d; --line:#3b3a39; --fg:#f3f2f1; --muted:#b3b0ad;
+  --work:#121110; --select:#6aa1ff; --btn-hover:#353433; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px;display:flex;flex-direction:column;overflow:hidden}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.titlebar{background:var(--brand);color:var(--brand-fg);padding-block:6px;display:flex;align-items:center;gap:10px}
+.titlebar .file{font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.qa{font:inherit;font-size:18px;line-height:1;width:32px;height:28px;border:0;border-radius:4px;background:transparent;color:var(--brand-fg);cursor:pointer;flex:none}
+.qa:hover{background:var(--brand-dark)}
+.qa:disabled{opacity:.4;cursor:default;background:transparent}
+.qa:focus-visible{outline:2px solid var(--brand-fg);outline-offset:1px}
+.titlebar .file{display:flex;align-items:center;gap:2px}
+#fileName{font:inherit;font-weight:700;color:inherit;background:transparent;border:1px solid transparent;border-radius:3px;padding:2px 4px;min-width:3em;max-width:100%;field-sizing:content;text-overflow:ellipsis}
+#fileName:hover{border-color:rgba(255,255,255,.55)}
+#fileName:focus{background:#ffffff;color:#252423;outline:none;border-color:#ffffff}
+.titlebar .state{flex:none;opacity:.85}
+.titlebar .saved{font-size:11px;opacity:.85;white-space:nowrap}
+
+.tabs{background:var(--brand);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;font:inherit;font-size:12.5px;border:0;background:transparent;color:var(--brand-fg);padding:6px 11px;border-radius:4px 4px 0 0;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ribbon);color:var(--brand);font-weight:700}
+.tabs button.file-tab{background:var(--brand-dark)}
+
+.ribbon{background:var(--ribbon);border-bottom:1px solid var(--line);padding-block:6px;display:flex;gap:6px;align-items:stretch;overflow-x:auto;scrollbar-width:thin}
+.group{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding-right:8px;border-right:1px solid var(--line)}
+.group:last-child{border-right:0}
+.group .row{display:flex;gap:3px;align-items:center}
+.group .cap{font-size:10px;color:var(--muted)}
+.rb{font:inherit;font-size:13px;min-width:30px;height:30px;padding:0 6px;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--fg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.rb:hover{background:var(--btn-hover)}
+.rb[aria-pressed="true"]{background:var(--btn-hover);border-color:var(--line)}
+.rb:focus-visible,.tabs button:focus-visible{outline:2px solid var(--select);outline-offset:1px}
+.rb.big{flex-direction:column;height:auto;padding:2px 8px;font-size:11px;gap:0}
+.rb.big .ic{font-size:18px;line-height:1.2}
+.rb.export{background:var(--brand);color:var(--brand-fg);font-weight:700}
+.rb.export:hover{background:var(--brand-dark)}
+.sw{width:20px;height:20px;border-radius:3px;border:1px solid var(--line);cursor:pointer;padding:0}
+.size{min-width:34px;text-align:center;font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:3px;padding:3px 2px;font-size:12px}
+
+.work{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding-block:10px;overflow:auto}
+.slidebox{position:relative;width:100%;max-width:1100px;margin:0 auto;aspect-ratio:16/9;box-shadow:0 1px 4px rgba(0,0,0,.35);background:#ffffff;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0}
+.stage canvas{position:absolute;inset:0;width:1600px;height:900px}
+.tx{position:absolute;transform:translate(-50%,-50%);white-space:pre;text-align:center;line-height:1.2;
+  font-family:"Noto Sans JP","Hiragino Sans",sans-serif;outline:none;cursor:text;padding:4px 10px;border:3px dashed transparent;min-width:40px;min-height:1.2em}
+.tx.sel{border-color:var(--select)}
+.pic{position:absolute;transform:translate(-50%,-50%);border:3px dashed transparent;cursor:pointer;max-width:none}
+.pic.sel{border-color:var(--select)}
+.rb:disabled{opacity:.4;cursor:default}
+.tx.gold{background:linear-gradient(180deg,#fff6c4 0%,#f1cf5c 38%,#a8770f 52%,#e8c25a 70%,#fff0a8 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important;caret-color:#000}
+.tx.pill{background:#3f5fae;padding:10px 24px}
+.tx.cap{text-shadow:0 0 6px #000,3px 3px 0 #000,-3px -3px 0 #000,3px -3px 0 #000,-3px 3px 0 #000,0 4px 0 #000,0 -4px 0 #000,4px 0 0 #000,-4px 0 0 #000}
+.hint{text-align:center;font-size:11.5px;color:var(--muted);margin:0}
+
+.status{background:var(--chrome);border-top:1px solid var(--line);padding-block:4px;display:flex;gap:14px;font-size:11px;color:var(--muted);align-items:center}
+.status .grow{flex:1}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:20;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.modal img{max-width:100%;max-height:70vh;border-radius:4px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+.modal p{color:#ffffff;margin:0;font-size:13px}
+.share-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.modal .share-main{background:#000000;color:#ffffff}
+.modal button{font:inherit;font-weight:700;padding:8px 22px;border-radius:4px;border:0;background:#ffffff;color:#252423;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.tx{transition:border-color .12s}}
+
+.backstage{position:fixed;inset:0;z-index:15;display:flex;background:var(--ribbon);color:var(--fg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bs-nav{background:var(--brand);display:flex;flex-direction:column;gap:2px;padding-block:10px;width:160px;flex:none;padding-left:env(safe-area-inset-left,0px)}
+.bs-back{font:inherit;font-size:20px;width:40px;height:40px;margin:0 0 8px 10px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:transparent;color:var(--brand-fg);cursor:pointer;flex:none}
+.bs-item{font:inherit;font-size:14px;text-align:left;padding:10px 18px;border:0;background:transparent;color:var(--brand-fg);cursor:pointer;white-space:nowrap}
+.bs-item[aria-current="true"]{background:var(--brand-dark);font-weight:700}
+.bs-item:focus-visible,.bs-back:focus-visible,.bs-file:focus-visible,.bs-card:focus-visible{outline:2px solid var(--select);outline-offset:1px}
+.bs-main{flex:1;min-width:0;overflow:auto;padding-block:16px;padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bs-main h2{font-size:22px;font-weight:500;margin:0 0 10px}
+.bs-sub{font-size:12px;color:var(--muted);margin:0 0 4px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.bs-list{display:grid;gap:2px}
+.bs-file{display:flex;gap:12px;align-items:center;padding:8px;border:0;background:transparent;color:var(--fg);font:inherit;text-align:left;cursor:pointer;border-radius:4px;width:100%}
+.bs-file:hover{background:var(--btn-hover)}
+.bs-file canvas{width:96px;height:54px;border:1px solid var(--line);flex:none}
+.bs-file .tt{display:grid;gap:2px;min-width:0}
+.bs-file .nm{font-weight:700;font-size:13.5px}
+.bs-file .meta{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bs-card{display:grid;gap:6px;justify-items:start;padding:8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--fg);font:inherit;font-size:13px;cursor:pointer}
+.bs-card:hover{background:var(--btn-hover)}
+.bs-cards{display:flex;flex-wrap:wrap;gap:10px}
+.bs-card canvas{width:180px;max-width:100%;height:auto;aspect-ratio:16/9;border:1px solid var(--line)}
+@media (max-width:560px){
+  .backstage{flex-direction:column}
+  .bs-nav{flex-direction:row;align-items:center;width:auto;padding-block:6px;overflow-x:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .bs-back{margin:0 6px 0 0;width:34px;height:34px;font-size:17px}
+  .bs-item{padding:6px 12px}
+}
+</style>
+</head>
+<body>
+
+
+<div class="titlebar pad">
+  <button type="button" class="qa" id="undoBtn" aria-label="元に戻す" title="元に戻す" disabled>↶</button>
+  <button type="button" class="qa" id="redoBtn" aria-label="やり直す" title="やり直す" disabled>↷</button>
+  <span class="file"><input id="fileName" value="会見ふう.pptx" size="14" aria-label="ファイル名（タップして変更）" title="タップして名前を変更" spellcheck="false" autocomplete="off"><span class="state">- 編集中</span></span>
+  <span class="saved">自動保存 オフ</span>
+</div>
+<div class="tabs pad" role="tablist">
+  <button type="button" class="file-tab" id="fileTab">ファイル</button>
+  <button type="button" role="tab" id="tab-home" aria-selected="true" data-tab="home">ホーム</button>
+  <button type="button" role="tab" id="tab-insert" aria-selected="false" data-tab="insert">挿入</button>
+  <button type="button" role="tab" id="tab-design" aria-selected="false" data-tab="design">デザイン</button>
+  <button type="button" tabindex="-1">画面切り替え</button>
+  <button type="button" tabindex="-1">アニメーション</button>
+  <button type="button" tabindex="-1">校閲</button>
+</div>
+
+<div class="ribbon pad" id="rb-home">
+  <div class="group">
+    <div class="row">
+      <button class="rb" id="sizeDown" type="button" aria-label="文字を小さく">A<sup>−</sup></button>
+      <span class="size" id="sizeShow">--</span>
+      <button class="rb" id="sizeUp" type="button" aria-label="文字を大きく">A<sup>+</sup></button>
+      <button class="rb" id="bold" type="button" aria-pressed="false" aria-label="太字"><b>B</b></button>
+    </div>
+    <span class="cap">フォント</span>
+  </div>
+  <div class="group">
+    <div class="row" id="swatches"></div>
+    <span class="cap">文字の色</span>
+  </div>
+  <div class="group">
+    <div class="row"><button class="rb big export" type="button" data-export><span class="ic">⇩</span>書き出し</button></div>
+    <span class="cap">画像</span>
+  </div>
+</div>
+
+<div class="ribbon pad" id="rb-insert" hidden>
+  <div class="group">
+    <div class="row" id="emojis"></div>
+    <span class="cap">真ん中の絵文字</span>
+  </div>
+  <div class="group">
+    <div class="row">
+      <button class="rb big" type="button" id="pickImg"><span class="ic">🖼️</span>画像を選ぶ</button>
+      <button class="rb big" type="button" id="clearImg" disabled><span class="ic">✕</span>画像を外す</button>
+    </div>
+    <span class="cap">真ん中の画像</span>
+    <input type="file" id="imgFile" accept="image/*" hidden>
+  </div>
+  <div class="group">
+    <div class="row"><button class="rb big export" type="button" data-export><span class="ic">⇩</span>書き出し</button></div>
+    <span class="cap">画像</span>
+  </div>
+</div>
+
+<div class="ribbon pad" id="rb-design" hidden>
+  <div class="group">
+    <div class="row">
+      <button class="rb big" type="button" data-p="0"><span class="ic">📈</span>会見ふう</button>
+      <button class="rb big" type="button" data-p="1"><span class="ic">⚖️</span>体重</button>
+      <button class="rb big" type="button" data-p="2"><span class="ic">🌙</span>残業</button>
+      <button class="rb big" type="button" data-p="3"><span class="ic">📱</span>スマホ</button>
+      <button class="rb big" type="button" data-p="4"><span class="ic">💴</span>お金</button>
+    </div>
+    <span class="cap">お手本</span>
+  </div>
+  <div class="group">
+    <div class="row"><button class="rb big export" type="button" data-export><span class="ic">⇩</span>書き出し</button></div>
+    <span class="cap">画像</span>
+  </div>
+</div>
+
+<div class="work pad">
+  <div class="slidebox" id="slidebox">
+    <div class="stage" id="stage"><canvas id="bg" width="1600" height="900"></canvas><img class="pic" id="pic" alt="挿入した画像" hidden></div>
+  </div>
+  <p class="hint" id="hint">スライドの文字をタップすると書き換えられます</p>
+</div>
+
+<div class="status pad">
+  <span>スライド 1/1</span><span>日本語</span><a href="simple.html" style="color:inherit">シンプル版</a><span class="grow"></span><span id="zoom">100%</span>
+</div>
+
+<div class="backstage" id="backstage" hidden>
+  <nav class="bs-nav" aria-label="ファイルの操作">
+    <button type="button" class="bs-back" id="bsBack" aria-label="編集に戻る">←</button>
+    <button type="button" class="bs-item" data-bs="new" aria-current="false">新規</button>
+    <button type="button" class="bs-item" data-bs="open" aria-current="true">開く</button>
+    <button type="button" class="bs-item" id="bsExport">書き出し</button>
+  </nav>
+  <section class="bs-main">
+    <div id="bs-open">
+      <h2>開く</h2>
+      <p class="bs-sub">最近使ったファイル</p>
+      <div class="bs-list" id="fileList"></div>
+    </div>
+    <div id="bs-new" hidden>
+      <h2>新規</h2>
+      <div class="bs-cards">
+        <button type="button" class="bs-card" id="newBlank"><canvas width="400" height="225" id="blankThumb"></canvas><span>白紙の垂直グラフ</span></button>
+        <button type="button" class="bs-card" id="newWanted"><canvas width="400" height="225" id="wantedThumb"></canvas><span>白紙の手配書</span></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <img id="outImg" alt="書き出したスライド画像">
+  <p>画像を長押しすると保存できます</p>
+  <div class="share-row">
+    <button type="button" id="shareX" class="share-main">Xで共有</button>
+    <button type="button" id="shareText">文字だけで投稿</button>
+    <button type="button" id="closeModal">閉じる</button>
+  </div>
+</div>
+
+<script>
+const FONT='"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif';
+const ANTON='"Anton","Noto Sans JP",sans-serif';
+const SERIF='"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif';
+const EMOJI_FONT='"Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji"';
+const C={ink:"#2b1d17",line:"#8a3a1f",blue:"#3f5fae",bubble:"#7a3218",wink:"#2a2118",red:"#9b1c1c"};
+
+// 背景の図形
+function arrowHead(c,x,y,dir,s,color){
+  c.fillStyle=color;c.beginPath();
+  if(dir==="up"){c.moveTo(x,y);c.lineTo(x-s*.7,y+s);c.lineTo(x+s*.7,y+s)}
+  if(dir==="right"){c.moveTo(x,y);c.lineTo(x-s,y-s*.7);c.lineTo(x-s,y+s*.7)}
+  if(dir==="left"){c.moveTo(x,y);c.lineTo(x+s,y-s*.7);c.lineTo(x+s,y+s*.7)}
+  c.closePath();c.fill();
+}
+function dbl(c,x1,x2,y,color){c.strokeStyle=color;c.lineWidth=10;c.beginPath();c.moveTo(x1+16,y);c.lineTo(x2-16,y);c.stroke();arrowHead(c,x1,y,"left",22,color);arrowHead(c,x2,y,"right",22,color)}
+function drawGraph(c){
+  const g=c.createLinearGradient(0,0,0,900);g.addColorStop(0,"#f3f2fb");g.addColorStop(1,"#e2e0ef");
+  c.fillStyle=g;c.fillRect(0,0,1600,900);
+  const ox=430,oy=600,xEnd=1110,vx=1175;
+  c.lineCap="round";c.strokeStyle=C.ink;c.lineWidth=6;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox,180);c.stroke();arrowHead(c,ox,150,"up",28,C.ink);
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(xEnd+40,oy);c.stroke();
+  c.strokeStyle=C.line;c.lineWidth=7;
+  c.beginPath();c.moveTo(ox+8,oy-6);c.lineTo(xEnd-20,oy-22);c.quadraticCurveTo(xEnd+30,oy-40,vx,330);c.stroke();
+  c.lineCap="butt";c.lineWidth=16;c.beginPath();c.moveTo(vx,340);c.lineTo(vx,150);c.stroke();c.lineCap="round";
+  arrowHead(c,vx,108,"up",44,C.line);
+  c.fillStyle=C.bubble;c.beginPath();c.ellipse(1325,170,130,72,0,0,Math.PI*2);c.fill();
+  c.beginPath();c.moveTo(1215,200);c.lineTo(vx+30,220);c.lineTo(1245,225);c.closePath();c.fill();
+  dbl(c,ox,xEnd-10,650,C.blue);dbl(c,xEnd+10,vx+40,650,C.blue);
+  c.fillStyle=C.blue;c.fillRect(770-190,680,380,104);c.fillRect(1157-100,680,200,104);
+}
+function drawWanted(c){
+  c.fillStyle="#111111";c.fillRect(0,0,1600,900);
+  let sd=11;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647};
+  const m=24,pts=[];
+  for(let x=m;x<=1600-m;x+=18)pts.push([x,m+rnd()*12]);
+  for(let y=m;y<=900-m;y+=18)pts.push([1600-m-rnd()*12,y]);
+  for(let x=1600-m;x>=m;x-=18)pts.push([x,900-m-rnd()*12]);
+  for(let y=900-m;y>=m;y-=18)pts.push([m+rnd()*12,y]);
+  const g=c.createRadialGradient(800,450,150,800,450,900);g.addColorStop(0,"#f8f8f6");g.addColorStop(1,"#d6d5cf");
+  c.fillStyle=g;c.beginPath();c.moveTo(pts[0][0],pts[0][1]);pts.forEach(q=>c.lineTo(q[0],q[1]));c.closePath();c.fill();
+  for(let i=0;i<420;i++){c.fillStyle=`rgba(0,0,0,${(rnd()*.12).toFixed(3)})`;c.fillRect(30+rnd()*1540,30+rnd()*840,rnd()*3+1,rnd()*3+1)}
+  c.fillStyle="#0c0c0c";c.fillRect(34,408,1532,76);
+  c.fillStyle="#0f1d17";c.fillRect(90,505,670,255);
+  c.strokeStyle="rgba(90,210,160,.16)";c.lineWidth=2;
+  for(let y=522;y<748;y+=14){c.beginPath();c.moveTo(104,y);c.lineTo(104+rnd()*360+180,y);c.stroke()}
+  c.strokeStyle="#0c0c0c";c.lineWidth=5;c.strokeRect(90,505,670,255);
+  c.fillStyle="#3a3a3a";c.font=`500 14px ${FONT}`;c.textAlign="center";c.textBaseline="middle";
+  c.fillText("これはパロディです。実在の人物・団体・懸賞金とは関係ありません。",1180,854);
+}
+
+// スライドの種類ごとの文字の置き場所（1600×900の座標、中心基準）
+const LAYOUTS={
+  graph:{
+    name:"graph",markId:"mark",shapes:drawGraph,
+    pic:{x:770,y:330,scale:100,boxW:340,boxH:230},
+    hint:"スライドの文字をタップすると書き換えられます",
+    items:[
+      {id:"yLabel",x:290,y:300,size:56,bold:true,color:C.ink},
+      {id:"xLabel",x:1290,y:620,size:52,bold:true,color:C.ink},
+      {id:"bubble",x:1325,y:170,size:40,bold:true,color:"#ffffff"},
+      {id:"mark",x:770,y:350,size:110,bold:false,color:C.ink,emoji:true},
+      {id:"markLabel",x:770,y:470,size:30,bold:true,color:"#ffffff",pill:true},
+      {id:"longLabel",x:770,y:732,size:38,bold:true,color:"#ffffff"},
+      {id:"shortLabel",x:1157,y:732,size:34,bold:true,color:"#ffffff"},
+      {id:"caption",x:800,y:842,size:72,bold:true,color:"#ffffff",cap:true}
+    ]
+  },
+  wanted:{
+    name:"wanted",markId:"w_mark",shapes:drawWanted,
+    pic:{x:425,y:632,scale:100,boxW:640,boxH:235},
+    hint:"",
+    items:[
+      {id:"w_reward",x:800,y:110,size:124,bold:true,color:"#000000",font:"anton",gold:true},
+      {id:"w_logo",x:800,y:226,size:84,bold:true,color:"#1c4fa6"},
+      {id:"w_bounty",x:800,y:336,size:96,bold:true,color:"#000000",font:"anton",gold:true},
+      {id:"w_band",x:800,y:446,size:54,bold:true,color:"#000000",font:"anton",gold:true,thin:true},
+      {id:"w_mark",x:425,y:632,size:170,bold:false,color:"#ffffff",emoji:true},
+      {id:"w_spread",x:425,y:818,size:78,bold:true,color:"#111111",font:"anton"},
+      {id:"w_wanted",x:1180,y:560,size:120,bold:true,color:"#111111",font:"anton"},
+      {id:"w_for",x:1180,y:648,size:40,bold:true,color:"#111111",font:"anton"},
+      {id:"w_x",x:1180,y:742,size:200,bold:true,color:"#111111"},
+      {id:"w_ai",x:1180,y:826,size:22,bold:false,color:"#444444"}
+    ]
+  }
+};
+const PRESETS=[
+  {yLabel:"成長度",xLabel:"時間",longLabel:"インターネット\n28年間",shortLabel:"AI\n3年10ヶ月",bubble:"この6ヶ月\n垂直",mark:"🤖",markLabel:"2022年11月30日〜",caption:"AIの発展が原因であります"},
+  {yLabel:"体重",xLabel:"年齢",longLabel:"学生時代\n22年間",shortLabel:"社会人\n3年",bubble:"この半年\n垂直",mark:"🍜",markLabel:"深夜ラーメン解禁",caption:"ラーメンの発展が原因であります"},
+  {yLabel:"残業時間",xLabel:"月日",longLabel:"平和な日々\n11ヶ月",shortLabel:"決算期\n1ヶ月",bubble:"この1週間\n垂直",mark:"📊",markLabel:"上司の思いつき",caption:"Excelの発展が原因であります"},
+  {yLabel:"スクリーンタイム",xLabel:"年数",longLabel:"ガラケー時代\n10年間",shortLabel:"ショート動画\n1年",bubble:"この3ヶ月\n垂直",mark:"📱",markLabel:"おすすめに出てきた日〜",caption:"ショート動画の発展が原因であります"},
+  {yLabel:"使ったお金",xLabel:"年数",longLabel:"現金払い\n20年間",shortLabel:"タッチ決済\n3年",bubble:"この半年\n垂直",mark:"💴",markLabel:"財布を持たなくなった日〜",caption:"キャッシュレスの発展が原因であります"}
+];
+const WANTED={w_reward:"1,000,000 LIKES",w_logo:"SELFIE",w_bounty:"CRIME BOUNTY",w_band:"SELFIE CRIME BOUNTY",w_mark:"🤳",w_spread:"SPREAD THE WORD!",w_wanted:"WANTED!",w_for:"FOR",w_x:"✕",w_ai:"✦ AIで生成"};
+const BLANK={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間\nここに入力",shortLabel:"短い期間\n入力",bubble:"吹き出し\n入力",mark:"❔",markLabel:"小さい札",caption:"下の一言を入力"};
+const BLANK_W={w_reward:"金額を入力",w_logo:"名前",w_bounty:"見出しを入力",w_band:"帯の文字",w_mark:"❔",w_spread:"SPREAD THE WORD!",w_wanted:"WANTED!",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
+const COLORS=["#2b1d17","#ffffff","#c0392b","#3f5fae","#1e8449","#d68910"];
+const EMOJIS=["🤖","🤳","🕵️","🍜","📊","💸","🔥","🙇"];
+const $=id=>document.getElementById(id);
+const stage=$("stage");
+let L=LAYOUTS.graph,PIC=L.pic,selected=null,picImg=null,typingT=null;
+
+// 文字の箱を作る
+const els={};
+Object.values(LAYOUTS).forEach(lay=>lay.items.forEach(it=>{
+  const d=document.createElement("div");
+  d.className="tx"+(it.pill?" pill":"")+(it.cap?" cap":"");
+  d.contentEditable="true";d.spellcheck=false;d.dataset.id=it.id;d.hidden=true;
+  d.setAttribute("role","textbox");d.setAttribute("aria-label",it.id);
+  d.style.left=it.x+"px";d.style.top=it.y+"px";
+  stage.appendChild(d);els[it.id]=d;
+  d.addEventListener("focus",()=>select(it.id));
+  d.addEventListener("input",()=>{clearTimeout(typingT);typingT=setTimeout(commit,600)});
+  d.addEventListener("blur",flush);
+  d.addEventListener("paste",e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData("text");document.execCommand("insertText",false,t)});
+}));
+function famOf(it){return it.emoji?EMOJI_FONT+","+FONT:it.font==="anton"?ANTON:it.serif?SERIF:FONT}
+function styleItem(it){
+  const d=els[it.id];
+  d.style.fontSize=it.size+"px";d.style.color=it.color;
+  d.style.fontWeight=it.font==="anton"?400:it.bold?900:500;d.style.fontFamily=famOf(it);
+  d.classList.toggle("gold",!!it.gold);
+  if(it.gold)d.style.webkitTextStroke=(it.thin?1.5:Math.max(2,it.size*.035))+"px #000";else d.style.webkitTextStroke="";
+}
+function textOf(id){return els[id].innerText.replace(/\n+$/,"")}
+function select(id){
+  selected=id==="image"?PIC:L.items.find(i=>i.id===id);
+  if(!selected)return;
+  Object.values(els).forEach(e=>e.classList.toggle("sel",e.dataset.id===id));
+  $("pic").classList.toggle("sel",id==="image");
+  $("sizeShow").textContent=id==="image"?PIC.scale+"%":selected.size;
+  $("bold").setAttribute("aria-pressed",String(!!selected.bold));
+}
+function unselect(){selected=null;Object.values(els).forEach(e=>e.classList.remove("sel"));$("pic").classList.remove("sel");$("sizeShow").textContent="--"}
+function picDims(){const r=Math.min(PIC.boxW/picImg.naturalWidth,PIC.boxH/picImg.naturalHeight)*PIC.scale/100;return [picImg.naturalWidth*r,picImg.naturalHeight*r]}
+function layoutPic(){
+  const p=$("pic"),mark=els[L.markId];
+  if(!picImg){p.hidden=true;mark.hidden=false;$("clearImg").disabled=true;return}
+  const [w,h]=picDims();
+  p.style.left=PIC.x+"px";p.style.top=PIC.y+"px";p.style.width=w+"px";p.style.height=h+"px";
+  p.hidden=false;mark.hidden=true;$("clearImg").disabled=false;
+}
+function clearPic(){picImg=null;layoutPic()}
+function fill(p){L.items.forEach(it=>{els[it.id].innerText=p[it.id]??""})}
+function drawBg(){L.shapes($("bg").getContext("2d"))}
+function setLayout(name){
+  L=LAYOUTS[name];PIC=L.pic;
+  Object.entries(LAYOUTS).forEach(([n,lay])=>lay.items.forEach(it=>{els[it.id].hidden=n!==name}));
+  picImg=null;layoutPic();unselect();drawBg();
+  $("hint").textContent=L.hint;$("hint").hidden=!L.hint;
+}
+
+// リボンのボタン（押してもスライドの選択が外れないようにする）
+document.querySelectorAll(".ribbon button").forEach(b=>b.addEventListener("mousedown",e=>e.preventDefault()));
+function bump(n){if(!selected)return;
+  if(selected===PIC){PIC.scale=Math.max(20,Math.min(300,PIC.scale+(n>0?10:-10)));layoutPic();select("image");commit();return}
+  selected.size=Math.max(12,Math.min(240,selected.size+n));styleItem(selected);select(selected.id);commit()}
+$("sizeUp").onclick=()=>bump(selected&&selected.size>=60?8:4);
+$("sizeDown").onclick=()=>bump(selected&&selected.size>60?-8:-4);
+$("bold").onclick=()=>{if(!selected||selected===PIC)return;selected.bold=!selected.bold;styleItem(selected);select(selected.id);commit()};
+COLORS.forEach(col=>{const b=document.createElement("button");b.type="button";b.className="sw";b.style.background=col;b.setAttribute("aria-label","文字の色 "+col);
+  b.addEventListener("mousedown",e=>e.preventDefault());
+  b.onclick=()=>{if(!selected||selected===PIC)return;selected.color=col;selected.gold=false;styleItem(selected);commit()};$("swatches").appendChild(b)});
+EMOJIS.forEach(em=>{const b=document.createElement("button");b.type="button";b.className="rb";b.textContent=em;b.setAttribute("aria-label","絵文字 "+em);
+  b.addEventListener("mousedown",e=>e.preventDefault());
+  b.onclick=()=>{clearPic();els[L.markId].innerText=em;select(L.markId);commit()};$("emojis").appendChild(b)});
+document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{if(L!==LAYOUTS.graph)setLayout("graph");fill(PRESETS[+b.dataset.p]);commit()});
+document.querySelectorAll(".tabs [data-tab]").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".tabs [data-tab]").forEach(x=>x.setAttribute("aria-selected",String(x===t)));
+  ["home","insert","design"].forEach(n=>$("rb-"+n).hidden=n!==t.dataset.tab);
+});
+
+// スライドの大きさを画面幅に合わせる
+function fit(){
+  const box=$("slidebox"),work=document.querySelector(".work");
+  const maxH=work.clientHeight-40;let w=work.clientWidth-parseFloat(getComputedStyle(work).paddingLeft)*2;
+  if(w*9/16>maxH)w=maxH*16/9;
+  box.style.width=Math.max(200,w)+"px";
+  const s=box.clientWidth/1600;stage.style.transform=`scale(${s})`;
+  $("zoom").textContent=Math.round(s*100)+"%";
+}
+window.addEventListener("resize",fit);
+
+// 画像の挿入
+$("pickImg").onclick=()=>$("imgFile").click();
+$("imgFile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{picImg=im;$("pic").src=im.src;PIC.scale=100;layoutPic();select("image");commit()};im.src=r.result};
+  r.readAsDataURL(f);e.target.value="";
+};
+$("clearImg").onclick=()=>{clearPic();select(L.markId);commit()};
+$("pic").addEventListener("click",()=>{if(document.activeElement)document.activeElement.blur();select("image")});
+
+// 書き出し
+function currentTexts(){const o={};L.items.forEach(it=>o[it.id]=textOf(it.id));return o}
+function exportImage(){
+  const cv=document.createElement("canvas");cv.width=1600;cv.height=900;
+  renderSlide(cv.getContext("2d"),currentTexts(),true,L);
+  $("outImg").src=cv.toDataURL("image/png");$("modal").hidden=false;
+}
+function renderSlide(c,texts,usePic,lay){
+  lay.shapes(c);
+  const pic=usePic&&picImg&&lay===L;
+  if(pic){const [w,h]=picDims();c.drawImage(picImg,PIC.x-w/2,PIC.y-h/2,w,h)}
+  lay.items.forEach(it=>{
+    if(it.id===lay.markId&&pic)return;
+    const ls=String(texts[it.id]||"").split("\n");if(!ls.join("").trim())return;
+    c.font=`${it.font==="anton"?400:it.bold?900:500} ${it.size}px ${famOf(it)}`;c.textAlign="center";c.textBaseline="middle";
+    const lh=it.size*1.2,top=it.y-(ls.length-1)*lh/2;
+    if(it.pill){const w=Math.max(...ls.map(l=>c.measureText(l).width))+48,h=ls.length*lh+20;c.fillStyle=C.blue;c.fillRect(it.x-w/2,it.y-h/2,w,h)}
+    ls.forEach((l,i)=>{
+      const y=top+i*lh;
+      if(it.cap){c.lineJoin="round";c.lineWidth=it.size*.2;c.strokeStyle="#000000";c.strokeText(l,it.x,y)}
+      if(it.gold){
+        c.lineJoin="round";c.lineWidth=(it.thin?1.5:Math.max(2,it.size*.035))*2;c.strokeStyle="#000000";c.strokeText(l,it.x,y);
+        const gg=c.createLinearGradient(0,y-it.size*.5,0,y+it.size*.5);
+        [[0,"#fff6c4"],[.38,"#f1cf5c"],[.52,"#a8770f"],[.7,"#e8c25a"],[1,"#fff0a8"]].forEach(([o,col])=>gg.addColorStop(o,col));
+        c.fillStyle=gg;c.fillText(l,it.x,y);return;
+      }
+      c.fillStyle=it.color;c.fillText(l,it.x,y);
+    });
+  });
+}
+document.querySelectorAll("[data-export]").forEach(b=>b.onclick=exportImage);
+$("closeModal").onclick=()=>{$("modal").hidden=true};
+// Xへの共有
+const SITE=location.origin+location.pathname.replace(/index\.html$/,"");
+const TAG="#垂直グラフ会見メーカー";
+function shareText(){
+  const t=L.name==="graph"?textOf("caption"):"WANTED FOR "+textOf("w_x");
+  return t.replace(/\n/g," ").trim()+"\n"+TAG;
+}
+function openIntent(){
+  const u="https://x.com/intent/post?text="+encodeURIComponent(shareText())+"&url="+encodeURIComponent(SITE);
+  const w=window.open(u,"_blank","noopener");if(!w)location.href=u;
+}
+$("shareX").onclick=async()=>{
+  try{
+    const blob=await (await fetch($("outImg").src)).blob();
+    const file=new File([blob],"suichoku.png",{type:"image/png"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],text:shareText()+"\n"+SITE});return;
+    }
+  }catch(e){if(e&&e.name==="AbortError")return}
+  openIntent();
+};
+$("shareText").onclick=openIntent;
+
+// ファイル画面
+const FILES=[
+  {layout:"graph",texts:PRESETS[0],name:"会見ふう.pptx",when:"2026/11/02 15:28",where:"ドキュメント › 会見資料"},
+  {layout:"graph",texts:PRESETS[1],name:"体重.pptx",when:"2026/10/30 23:41",where:"ドキュメント › 個人"},
+  {layout:"graph",texts:PRESETS[2],name:"残業.pptx",when:"2026/10/28 02:15",where:"ドキュメント › 決算"},
+  {layout:"wanted",texts:WANTED,name:"懸賞金.pptx",when:"2026/10/27 21:50",where:"ドキュメント › 広報"},
+  {layout:"graph",texts:PRESETS[3],name:"スマホ.pptx",when:"2026/10/25 01:07",where:"ドキュメント › 個人"},
+  {layout:"graph",texts:PRESETS[4],name:"お金.pptx",when:"2026/10/20 21:33",where:"ドキュメント › 家計"}
+];
+function thumb(cv,texts,layout){const c=cv.getContext("2d");c.setTransform(cv.width/1600,0,0,cv.height/900,0,0);renderSlide(c,texts,false,LAYOUTS[layout]);c.setTransform(1,0,0,1,0,0)}
+function closeBackstage(){$("backstage").hidden=true;requestAnimationFrame(fit)}
+function openFile(layout,texts,name){flush();setLayout(layout);fill(texts);$("fileName").value=name;closeBackstage();commit()}
+function showBs(view){
+  ["open","new"].forEach(v=>$("bs-"+v).hidden=v!==view);
+  document.querySelectorAll(".bs-item[data-bs]").forEach(b=>b.setAttribute("aria-current",String(b.dataset.bs===view)));
+}
+function openBackstage(){
+  const list=$("fileList");list.innerHTML="";
+  FILES.forEach(f=>{
+    const b=document.createElement("button");b.type="button";b.className="bs-file";
+    const cv=document.createElement("canvas");cv.width=320;cv.height=180;
+    const t=document.createElement("span");t.className="tt";
+    const nm=document.createElement("span");nm.className="nm";nm.textContent=f.name;
+    const mt=document.createElement("span");mt.className="meta";mt.textContent=f.where+"　"+f.when;
+    t.append(nm,mt);b.append(cv,t);
+    b.onclick=()=>openFile(f.layout,f.texts,f.name);
+    list.appendChild(b);thumb(cv,f.texts,f.layout);
+  });
+  thumb($("blankThumb"),BLANK,"graph");
+  thumb($("wantedThumb"),BLANK_W,"wanted");
+  showBs("open");$("backstage").hidden=false;
+}
+$("fileTab").onclick=openBackstage;
+$("bsBack").onclick=closeBackstage;
+document.querySelectorAll(".bs-item[data-bs]").forEach(b=>b.onclick=()=>showBs(b.dataset.bs));
+$("bsExport").onclick=()=>{closeBackstage();exportImage()};
+$("newBlank").onclick=()=>openFile("graph",BLANK,"プレゼンテーション1.pptx");
+$("newWanted").onclick=()=>openFile("wanted",BLANK_W,"手配書1.pptx");
+
+// 元に戻す・やり直す
+const hist=[];let hi=-1,restoring=false;
+function styleSnap(){const o={};Object.values(LAYOUTS).forEach(l=>l.items.forEach(it=>o[it.id]=[it.size,it.bold,it.color,!!it.gold]));return o}
+function snap(){return {layout:L.name,texts:currentTexts(),styles:styleSnap(),pic:picImg?{img:picImg,scale:PIC.scale}:null,file:$("fileName").value}}
+function same(a,b){return a&&b&&a.layout===b.layout&&a.file===b.file&&JSON.stringify([a.texts,a.styles])===JSON.stringify([b.texts,b.styles])&&(a.pic?a.pic.img:null)===(b.pic?b.pic.img:null)&&(a.pic?a.pic.scale:0)===(b.pic?b.pic.scale:0)}
+function updUndo(){$("undoBtn").disabled=hi<=0;$("redoBtn").disabled=hi>=hist.length-1}
+function commit(){
+  if(restoring)return;clearTimeout(typingT);typingT=null;
+  const sn=snap();if(same(hist[hi],sn))return;
+  hist.splice(hi+1);hist.push(sn);if(hist.length>100)hist.shift();hi=hist.length-1;updUndo();
+}
+function flush(){if(typingT)commit()}
+function restore(sn){
+  restoring=true;
+  if(L.name!==sn.layout)setLayout(sn.layout);
+  Object.values(LAYOUTS).forEach(l=>l.items.forEach(it=>{const v=sn.styles[it.id];it.size=v[0];it.bold=v[1];it.color=v[2];it.gold=v[3];styleItem(it)}));
+  fill(sn.texts);
+  if(sn.pic){picImg=sn.pic.img;PIC.scale=sn.pic.scale;$("pic").src=picImg.src}else picImg=null;
+  layoutPic();unselect();$("fileName").value=sn.file;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  restoring=false;updUndo();
+}
+function undo(){flush();if(hi>0){hi--;restore(hist[hi])}}
+function redo(){flush();if(hi<hist.length-1){hi++;restore(hist[hi])}}
+$("undoBtn").addEventListener("mousedown",e=>e.preventDefault());
+$("redoBtn").addEventListener("mousedown",e=>e.preventDefault());
+$("undoBtn").onclick=undo;$("redoBtn").onclick=redo;
+// ファイル名の変更
+$("fileName").addEventListener("focus",e=>e.target.select());
+$("fileName").addEventListener("keydown",e=>{if(e.key==="Enter")e.target.blur()});
+$("fileName").addEventListener("change",e=>{
+  let v=e.target.value.trim();if(!v)v="プレゼンテーション1";
+  if(!/\.pptx$/i.test(v))v+=".pptx";
+  e.target.value=v;commit();
+});
+document.addEventListener("keydown",e=>{
+  if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();
+  if(k==="z"&&!e.shiftKey){e.preventDefault();undo()}
+  else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo()}
+});
+
+Object.values(LAYOUTS).forEach(l=>l.items.forEach(styleItem));
+setLayout("graph");
+fill(PRESETS[0]);
+commit();
+fit();requestAnimationFrame(fit);
+if(document.fonts&&document.fonts.load){
+  Promise.all([document.fonts.load(`900 40px "Noto Serif JP"`),document.fonts.load(`40px "Anton"`),document.fonts.load(`900 40px "Noto Sans JP"`),document.fonts.load(`500 40px "Noto Sans JP"`)]).then(drawBg).catch(()=>{});
+}
+</script>
+
+</body>
+</html>

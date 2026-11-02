@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta name="description" content="文字を入れ替えて「最後だけ垂直に伸びるグラフ」や手配書のパロディ画像を作れます。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="垂直グラフ会見メーカー">
+<meta property="og:description" content="〇〇の発展が原因であります。文字を入れ替えてパロディ画像を作れます。">
+<meta property="og:url" content="https://waldstein34.github.io/kaiken-maker/simple.html">
+<meta property="og:image" content="https://waldstein34.github.io/kaiken-maker/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="垂直グラフ会見メーカー">
+<meta name="twitter:image" content="https://waldstein34.github.io/kaiken-maker/ogp.png">
+<title>垂直グラフ会見メーカー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+/* 上に完成画像、下に入力欄の1列。画像は長押しで保存 */
+:root{
+  --bg:#f3f2f7; --panel:#ffffff; --fg:#22212b; --muted:#6a6878;
+  --line:#d9d7e3; --accent:#3d5fb8; --accent-fg:#ffffff; --field:#fbfbfd;
+  --ui:"Zen Kaku Gothic New","Noto Sans JP",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#16161c; --panel:#202029; --fg:#ecebf3; --muted:#a3a1b3;
+  --line:#34333f; --accent:#7f9cf0; --accent-fg:#111827; --field:#191920; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#16161c; --panel:#202029; --fg:#ecebf3; --muted:#a3a1b3;
+  --line:#34333f; --accent:#7f9cf0; --accent-fg:#111827; --field:#191920; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-block:8px 16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:8px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-size:1rem;margin:0}
+.hint{font-size:.72rem;color:var(--muted);margin:0}
+.out{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:4px}
+.out img{width:100%;border-radius:6px;border:1px solid var(--line);display:block;background:#000;aspect-ratio:16/9}
+.presets{display:flex;gap:6px;overflow-x:auto}
+.presets button{flex:none;font:inherit;font-size:.78rem;padding:3px 10px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);cursor:pointer}
+.presets button:focus-visible,.form input:focus-visible,.form textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.form{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:6px 8px;
+  grid-template-columns:1fr 1fr}
+.f{display:grid;gap:1px;min-width:0}
+.f.wide{grid-column:1/-1}
+.f label{font-size:.68rem;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.f input{font:inherit;font-size:16px;padding:4px 8px;border-radius:5px;border:1px solid var(--line);
+  background:var(--field);color:var(--fg);width:100%;box-sizing:border-box}
+.note{font-size:.7rem;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="top">
+    <h1>垂直グラフ会見メーカー</h1>
+    <p class="hint">画像を長押しで保存／「/」で改行</p>
+  </div>
+
+  <div class="out">
+    <img id="result" alt="作成したグラフ画像">
+  </div>
+
+  <div class="presets" aria-label="お手本">
+    <button type="button" data-p="0">会見ふう</button>
+    <button type="button" data-p="1">体重</button>
+    <button type="button" data-p="2">残業</button>
+  </div>
+
+  <form class="form" id="form" onsubmit="return false">
+    <div class="f"><label for="yLabel">縦の軸</label><input id="yLabel"></div>
+    <div class="f"><label for="xLabel">横の軸</label><input id="xLabel"></div>
+    <div class="f"><label for="longLabel">長い期間</label><input id="longLabel"></div>
+    <div class="f"><label for="shortLabel">短い期間</label><input id="shortLabel"></div>
+    <div class="f"><label for="bubble">吹き出し</label><input id="bubble"></div>
+    <div class="f"><label for="mark">真ん中の絵文字</label><input id="mark"></div>
+    <div class="f"><label for="markLabel">小さい札</label><input id="markLabel"></div>
+    <div class="f"><label for="caption">下の一言</label><input id="caption"></div>
+  </form>
+  <p class="note"><a href="./" style="color:inherit">PowerPoint風の編集画面はこちら</a>　実在の会社のロゴは入れていないパロディ用です。</p>
+</div>
+
+<canvas id="cv" width="1600" height="900" hidden></canvas>
+
+<script>
+const PRESETS=[
+  {yLabel:"成長度",xLabel:"時間",longLabel:"インターネット/28年間",shortLabel:"AI/3年10ヶ月",bubble:"この6ヶ月/垂直",mark:"🤖",markLabel:"2022年11月30日〜",caption:"AIの発展が原因であります"},
+  {yLabel:"体重",xLabel:"年齢",longLabel:"学生時代/22年間",shortLabel:"社会人/3年",bubble:"この半年/垂直",mark:"🍜",markLabel:"深夜ラーメン解禁",caption:"ラーメンの発展が原因であります"},
+  {yLabel:"残業時間",xLabel:"月日",longLabel:"平和な日々/11ヶ月",shortLabel:"決算期/1ヶ月",bubble:"この1週間/垂直",mark:"📊",markLabel:"上司の思いつき",caption:"Excelの発展が原因であります"}
+];
+const KEYS=Object.keys(PRESETS[0]);
+const $=id=>document.getElementById(id);
+const cv=$("cv"),ctx=cv.getContext("2d");
+const FONT='"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif';
+const C={screen:"#e9e8f4",ink:"#2b1d17",line:"#8a3a1f",blue:"#3f5fae",blueBox:"#3f5fae",bubble:"#7a3218",stage:"#0d0d10"};
+
+function fill(p){KEYS.forEach(k=>{$(k).value=p[k]});}
+function vals(){const o={};KEYS.forEach(k=>o[k]=$(k).value);return o}
+
+function fitFont(text,weight,size,maxW){
+  let s=size;ctx.font=`${weight} ${s}px ${FONT}`;
+  while(s>14&&ctx.measureText(text).width>maxW){s-=2;ctx.font=`${weight} ${s}px ${FONT}`}
+  return s;
+}
+function lines(t){return String(t).split(/[\/／\n]/).slice(0,3)}
+function multi(text,cx,cy,weight,size,maxW,color,lh=1.2){
+  const ls=lines(text);let s=size;
+  ls.forEach(l=>{s=Math.min(s,fitFont(l,weight,size,maxW))});
+  ctx.font=`${weight} ${s}px ${FONT}`;ctx.fillStyle=color;ctx.textAlign="center";ctx.textBaseline="middle";
+  const h=s*lh,top=cy-(ls.length-1)*h/2;
+  ls.forEach((l,i)=>ctx.fillText(l,cx,top+i*h));
+}
+function arrowHead(x,y,dir,size,color){
+  ctx.fillStyle=color;ctx.beginPath();
+  if(dir==="up"){ctx.moveTo(x,y);ctx.lineTo(x-size*.7,y+size);ctx.lineTo(x+size*.7,y+size)}
+  if(dir==="right"){ctx.moveTo(x,y);ctx.lineTo(x-size,y-size*.7);ctx.lineTo(x-size,y+size*.7)}
+  if(dir==="left"){ctx.moveTo(x,y);ctx.lineTo(x+size,y-size*.7);ctx.lineTo(x+size,y+size*.7)}
+  ctx.closePath();ctx.fill();
+}
+function dblArrow(x1,x2,y,color){
+  ctx.strokeStyle=color;ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(x1+16,y);ctx.lineTo(x2-16,y);ctx.stroke();
+  arrowHead(x1,y,"left",22,color);arrowHead(x2,y,"right",22,color);
+}
+
+function draw(){
+  const v=vals();
+  // 会場の暗い背景とスクリーン
+  ctx.fillStyle=C.stage;ctx.fillRect(0,0,1600,900);
+  const g=ctx.createLinearGradient(0,40,0,820);g.addColorStop(0,"#f1f0fa");g.addColorStop(1,"#dedcec");
+  ctx.fillStyle=g;ctx.fillRect(70,40,1460,780);
+
+  const ox=430,oy=600,xEnd=1110,topY=150;
+  // 軸
+  ctx.strokeStyle=C.ink;ctx.lineWidth=6;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox,topY+30);ctx.stroke();arrowHead(ox,topY,"up",28,C.ink);
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(xEnd+40,oy);ctx.stroke();
+
+  // 軸ラベル
+  ctx.font=`900 ${fitFont(v.yLabel,900,56,300)}px ${FONT}`;ctx.fillStyle=C.ink;ctx.textAlign="right";ctx.textBaseline="middle";
+  ctx.fillText(v.yLabel,ox-40,300);
+  ctx.font=`900 ${fitFont(v.xLabel,900,52,250)}px ${FONT}`;ctx.textAlign="left";
+  ctx.fillText(v.xLabel,xEnd+90,oy+20);
+
+  // ほぼ平らな線 → 急上昇 → 垂直
+  const vx=1175;
+  ctx.strokeStyle=C.line;ctx.lineWidth=7;
+  ctx.beginPath();ctx.moveTo(ox+8,oy-6);ctx.lineTo(xEnd-20,oy-22);
+  ctx.quadraticCurveTo(xEnd+30,oy-40,vx,330);ctx.stroke();
+  ctx.lineWidth=16;ctx.lineCap="butt";
+  ctx.beginPath();ctx.moveTo(vx,340);ctx.lineTo(vx,150);ctx.stroke();
+  arrowHead(vx,108,"up",44,C.line);ctx.lineCap="round";
+
+  // 吹き出し
+  const bx=1325,by=170;
+  ctx.fillStyle=C.bubble;ctx.beginPath();ctx.ellipse(bx,by,130,72,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.moveTo(bx-110,by+30);ctx.lineTo(vx+30,by+50);ctx.lineTo(bx-80,by+55);ctx.closePath();ctx.fill();
+  multi(v.bubble,bx,by,900,40,210,"#ffffff");
+
+  // 真ん中のマークと札
+  const mx=770,my=360;
+  if(v.mark.trim()){
+    ctx.font=`110px "Apple Color Emoji","Noto Color Emoji",${FONT}`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle=C.ink;
+    let s=110;while(s>30&&ctx.measureText(v.mark).width>320){s-=6;ctx.font=`900 ${s}px "Apple Color Emoji","Noto Color Emoji",${FONT}`}
+    ctx.fillText(v.mark,mx,my);
+  }
+  if(v.markLabel.trim()){
+    const s=fitFont(v.markLabel,700,30,380);ctx.font=`700 ${s}px ${FONT}`;
+    const w=Math.max(180,ctx.measureText(v.markLabel).width+48);
+    ctx.fillStyle=C.blueBox;ctx.fillRect(mx-w/2,my+80,w,56);
+    ctx.fillStyle="#ffffff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(v.markLabel,mx,my+109);
+  }
+
+  // 期間の矢印と箱
+  const ay=650;
+  dblArrow(ox,xEnd-10,ay,C.blue);
+  dblArrow(xEnd+10,vx+40,ay,C.blue);
+  const lw=380;ctx.fillStyle=C.blueBox;ctx.fillRect((ox+xEnd)/2-lw/2,ay+30,lw,104);
+  multi(v.longLabel,(ox+xEnd)/2,ay+82,700,38,lw-30,"#ffffff");
+  const sw=200,scx=(xEnd+vx+30)/2;ctx.fillStyle=C.blueBox;ctx.fillRect(scx-sw/2,ay+30,sw,104);
+  multi(v.shortLabel,scx,ay+82,700,34,sw-24,"#ffffff");
+
+  // 字幕
+  if(v.caption.trim()){
+    const s=fitFont(v.caption,900,72,1400);ctx.font=`900 ${s}px ${FONT}`;
+    ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
+    ctx.lineWidth=s*.22;ctx.strokeStyle="#000000";ctx.strokeText(v.caption,800,850);
+    ctx.fillStyle="#ffffff";ctx.fillText(v.caption,800,850);
+  }
+  $("result").src=cv.toDataURL("image/png");
+}
+
+let t;function schedule(){clearTimeout(t);t=setTimeout(draw,120)}
+KEYS.forEach(k=>$(k).addEventListener("input",schedule));
+document.querySelectorAll(".presets button").forEach(b=>b.addEventListener("click",()=>{fill(PRESETS[+b.dataset.p]);draw()}));
+
+fill(PRESETS[0]);
+draw();
+(document.fonts&&document.fonts.load?Promise.all([document.fonts.load(`900 40px "Noto Sans JP"`),document.fonts.load(`700 40px "Noto Sans JP"`)]):Promise.resolve())
+  .then(()=>document.fonts.ready).then(draw).catch(()=>{});
+</script>
+
+</body>
+</html>
