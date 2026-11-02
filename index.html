@@ -46,6 +46,12 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 #fileName:hover{border-color:rgba(255,255,255,.55)}
 #fileName:focus{background:#ffffff;color:#252423;outline:none;border-color:#ffffff}
 .titlebar .state{flex:none;opacity:.85}
+.qa.save{width:auto;font-size:12.5px;font-weight:700;padding:0 10px;border:1px solid rgba(255,255,255,.65)}
+.toast{position:fixed;left:50%;bottom:calc(44px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#252423;color:#ffffff;padding:8px 16px;border-radius:4px;z-index:30;font-size:13px;max-width:calc(100% - 32px);text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.bs-row{display:flex;align-items:center;gap:6px}
+.bs-row .bs-file{flex:1;min-width:0}
+.bs-del{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:4px;padding:5px 9px;cursor:pointer;flex:none;white-space:nowrap}
+.bs-del.armed{background:#c0392b;border-color:#c0392b;color:#ffffff}
 .titlebar .saved{font-size:11px;opacity:.85;white-space:nowrap}
 
 .tabs{background:var(--brand);display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
@@ -131,8 +137,9 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 <div class="titlebar pad">
   <button type="button" class="qa" id="undoBtn" aria-label="元に戻す" title="元に戻す" disabled>↶</button>
   <button type="button" class="qa" id="redoBtn" aria-label="やり直す" title="やり直す" disabled>↷</button>
+  <button type="button" class="qa save" id="saveBtn" title="保存（Ctrl+S）">保存</button>
   <span class="file"><input id="fileName" value="会見ふう.pptx" size="14" aria-label="ファイル名（タップして変更）" title="タップして名前を変更" spellcheck="false" autocomplete="off"><span class="state">- 編集中</span></span>
-  <span class="saved">自動保存 オフ</span>
+  <span class="saved" id="saveState">未保存</span>
 </div>
 <div class="tabs pad" role="tablist">
   <button type="button" class="file-tab" id="fileTab">ファイル</button>
@@ -216,12 +223,15 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
     <button type="button" class="bs-back" id="bsBack" aria-label="編集に戻る">←</button>
     <button type="button" class="bs-item" data-bs="new" aria-current="false">新規</button>
     <button type="button" class="bs-item" data-bs="open" aria-current="true">開く</button>
+    <button type="button" class="bs-item" id="bsSave">保存</button>
     <button type="button" class="bs-item" id="bsExport">書き出し</button>
   </nav>
   <section class="bs-main">
     <div id="bs-open">
       <h2>開く</h2>
-      <p class="bs-sub">最近使ったファイル</p>
+      <p class="bs-sub" id="savedHead" hidden>保存したファイル（このブラウザ）</p>
+      <div class="bs-list" id="savedList"></div>
+      <p class="bs-sub">お手本のファイル</p>
       <div class="bs-list" id="fileList"></div>
     </div>
     <div id="bs-new" hidden>
@@ -233,6 +243,8 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
     </div>
   </section>
 </div>
+
+<div class="toast" id="toast" role="status" hidden></div>
 
 <div class="modal" id="modal" hidden>
   <img id="outImg" alt="書き出したスライド画像">
@@ -494,6 +506,54 @@ $("shareX").onclick=async()=>{
 };
 $("shareText").onclick=openIntent;
 
+// 保存（このブラウザの中に保存）
+const STORE="kaiken-maker-files";
+function loadSaved(){try{return JSON.parse(localStorage.getItem(STORE)||"[]")}catch(e){return []}}
+function writeSaved(a){localStorage.setItem(STORE,JSON.stringify(a))}
+function nowStr(){const d=new Date(),z=n=>String(n).padStart(2,"0");return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`}
+function setState(t){$("saveState").textContent=t}
+function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},2400)}
+function saveFile(){
+  flush();
+  const name=$("fileName").value;
+  const rec={name,layout:L.name,texts:currentTexts(),styles:styleSnap(),pic:picImg?{src:picImg.src,scale:PIC.scale}:null,when:nowStr()};
+  const a=loadSaved().filter(f=>f.name!==name);a.unshift(rec);
+  try{writeSaved(a)}catch(e){
+    if(rec.pic){rec.pic=null;try{writeSaved(a);setState("保存済み");toast("画像が大きいため、画像を除いて保存しました");return}catch(e2){}}
+    toast("保存できませんでした。ブラウザの保存できる容量がいっぱいか、保存が使えない設定です");return;
+  }
+  setState("保存済み");toast("「"+name+"」を保存しました");
+}
+function openSaved(rec){
+  flush();setLayout(rec.layout);
+  Object.values(LAYOUTS).forEach(l=>l.items.forEach(it=>{const v=rec.styles&&rec.styles[it.id];if(v){it.size=v[0];it.bold=v[1];it.color=v[2];it.gold=v[3]}styleItem(it)}));
+  fill(rec.texts);$("fileName").value=rec.name;closeBackstage();
+  const done=()=>{commit();setState("保存済み")};
+  if(rec.pic){const im=new Image();im.onload=()=>{picImg=im;$("pic").src=im.src;PIC.scale=rec.pic.scale;layoutPic();done()};im.onerror=done;im.src=rec.pic.src}else done();
+}
+function renderSaved(){
+  const saved=loadSaved(),sl=$("savedList");sl.innerHTML="";$("savedHead").hidden=!saved.length;
+  saved.forEach(f=>{
+    const row=document.createElement("div");row.className="bs-row";
+    const b=document.createElement("button");b.type="button";b.className="bs-file";
+    const cv=document.createElement("canvas");cv.width=320;cv.height=180;
+    const t=document.createElement("span");t.className="tt";
+    const nm=document.createElement("span");nm.className="nm";nm.textContent=f.name;
+    const mt=document.createElement("span");mt.className="meta";mt.textContent="このブラウザ　"+f.when;
+    t.append(nm,mt);b.append(cv,t);b.onclick=()=>openSaved(f);
+    const del=document.createElement("button");del.type="button";del.className="bs-del";del.textContent="削除";
+    del.onclick=()=>{
+      if(!del.classList.contains("armed")){del.classList.add("armed");del.textContent="本当に削除";setTimeout(()=>{del.classList.remove("armed");del.textContent="削除"},3000);return}
+      try{writeSaved(loadSaved().filter(x=>x.name!==f.name))}catch(e){}
+      renderSaved();toast("「"+f.name+"」を削除しました");
+    };
+    row.append(b,del);sl.appendChild(row);
+    try{thumb(cv,f.texts,f.layout)}catch(e){}
+  });
+}
+$("saveBtn").addEventListener("mousedown",e=>e.preventDefault());
+$("saveBtn").onclick=saveFile;
+
 // ファイル画面
 const FILES=[
   {layout:"graph",texts:PRESETS[0],name:"会見ふう.pptx",when:"2026/11/02 15:28",where:"ドキュメント › 会見資料"},
@@ -522,6 +582,7 @@ function openBackstage(){
     b.onclick=()=>openFile(f.layout,f.texts,f.name);
     list.appendChild(b);thumb(cv,f.texts,f.layout);
   });
+  renderSaved();
   thumb($("blankThumb"),BLANK,"graph");
   thumb($("wantedThumb"),BLANK_W,"wanted");
   showBs("open");$("backstage").hidden=false;
@@ -530,6 +591,7 @@ $("fileTab").onclick=openBackstage;
 $("bsBack").onclick=closeBackstage;
 document.querySelectorAll(".bs-item[data-bs]").forEach(b=>b.onclick=()=>showBs(b.dataset.bs));
 $("bsExport").onclick=()=>{closeBackstage();exportImage()};
+$("bsSave").onclick=()=>{saveFile();renderSaved()};
 $("newBlank").onclick=()=>openFile("graph",BLANK,"プレゼンテーション1.pptx");
 $("newWanted").onclick=()=>openFile("wanted",BLANK_W,"手配書1.pptx");
 
@@ -542,7 +604,7 @@ function updUndo(){$("undoBtn").disabled=hi<=0;$("redoBtn").disabled=hi>=hist.le
 function commit(){
   if(restoring)return;clearTimeout(typingT);typingT=null;
   const sn=snap();if(same(hist[hi],sn))return;
-  hist.splice(hi+1);hist.push(sn);if(hist.length>100)hist.shift();hi=hist.length-1;updUndo();
+  hist.splice(hi+1);hist.push(sn);if(hist.length>100)hist.shift();hi=hist.length-1;updUndo();setState("未保存");
 }
 function flush(){if(typingT)commit()}
 function restore(sn){
@@ -553,7 +615,7 @@ function restore(sn){
   if(sn.pic){picImg=sn.pic.img;PIC.scale=sn.pic.scale;$("pic").src=picImg.src}else picImg=null;
   layoutPic();unselect();$("fileName").value=sn.file;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  restoring=false;updUndo();
+  restoring=false;updUndo();setState("未保存");
 }
 function undo(){flush();if(hi>0){hi--;restore(hist[hi])}}
 function redo(){flush();if(hi<hist.length-1){hi++;restore(hist[hi])}}
@@ -570,6 +632,7 @@ $("fileName").addEventListener("change",e=>{
 });
 document.addEventListener("keydown",e=>{
   if(!(e.ctrlKey||e.metaKey))return;const k=e.key.toLowerCase();
+  if(k==="s"){e.preventDefault();saveFile();return}
   if(k==="z"&&!e.shiftKey){e.preventDefault();undo()}
   else if(k==="y"||(k==="z"&&e.shiftKey)){e.preventDefault();redo()}
 });
@@ -578,6 +641,7 @@ Object.values(LAYOUTS).forEach(l=>l.items.forEach(styleItem));
 setLayout("graph");
 fill(PRESETS[0]);
 commit();
+setState("未保存");
 fit();requestAnimationFrame(fit);
 if(document.fonts&&document.fonts.load){
   Promise.all([document.fonts.load(`900 40px "Noto Serif JP"`),document.fonts.load(`40px "Anton"`),document.fonts.load(`900 40px "Noto Sans JP"`),document.fonts.load(`500 40px "Noto Sans JP"`)]).then(drawBg).catch(()=>{});
