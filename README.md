@@ -5,3 +5,7 @@
 公開ページ: https://waldstein34.github.io/kaiken-maker/
 
 これはパロディです。実在の人物・団体・懸賞金とは関係ありません。
+
+## 保管（公開していないもの）
+
+- `_archive/simple.html`：最初に作ったシンプル版。公開ページには出していません。
