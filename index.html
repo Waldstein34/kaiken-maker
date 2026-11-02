@@ -93,6 +93,10 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;width:100%;max-width:1100px;margin:0 auto;background:var(--ribbon);border:1px solid var(--line);border-radius:6px;padding:10px;box-sizing:border-box;flex:none}
 .fld{display:grid;gap:2px;min-width:0}
 .fld.wide{grid-column:1/-1}
+.frow{display:flex;gap:6px;min-width:0}
+.frow input{flex:1}
+.fbtn{font:inherit;font-size:12.5px;padding:0 9px;border:1px solid var(--line);border-radius:4px;background:var(--ribbon);color:var(--fg);cursor:pointer;flex:none;white-space:nowrap}
+.fbtn:focus-visible{outline:2px solid var(--select);outline-offset:1px}
 .fld label{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
 .fld input{font:inherit;font-size:16px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--chrome);color:var(--fg);width:100%;box-sizing:border-box;min-width:0}
 .fld input:focus{outline:2px solid var(--select);outline-offset:0}
@@ -388,20 +392,28 @@ Object.values(LAYOUTS).forEach(lay=>lay.items.forEach(it=>{
   d.addEventListener("paste",e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData("text");document.execCommand("insertText",false,t)});
 }));
 // 下の入力欄（スライドの文字と同じ内容。「/」で改行）
-const LABELS={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間",shortLabel:"短い期間",bubble:"吹き出し",mark:"真ん中の絵文字",markLabel:"小さい札",caption:"下の一言",
-  w_reward:"金額",w_logo:"青い文字",w_bounty:"見出し",w_band:"黒い帯",w_mark:"写真の枠の絵文字",w_spread:"下の文字",w_wanted:"WANTED",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
+const LABELS={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間",shortLabel:"短い期間",bubble:"吹き出し",mark:"真ん中の絵文字・画像",markLabel:"小さい札",caption:"下の一言",
+  w_reward:"金額",w_logo:"青い文字",w_bounty:"見出し",w_band:"黒い帯",w_mark:"写真の枠の絵文字・画像",w_spread:"下の文字",w_wanted:"WANTED",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
 const flds={};
-const ORDER=["yLabel","xLabel","longLabel","shortLabel","bubble","mark","markLabel","caption"];
+const ORDER=["yLabel","xLabel","longLabel","shortLabel","bubble","markLabel","mark","caption"];
 const ord=it=>{const k=ORDER.indexOf(it.id);return k<0?99:k};
 Object.entries(LAYOUTS).forEach(([n,lay])=>[...lay.items].sort((a,b)=>ord(a)-ord(b)).forEach(it=>{
-  const w=document.createElement("div");w.className="fld"+(it.id==="caption"?" wide":"");w.dataset.id=it.id;w.dataset.layout=n;w.hidden=true;
+  const w=document.createElement("div");w.className="fld"+(it.id==="caption"||it.id===lay.markId?" wide":"");w.dataset.id=it.id;w.dataset.layout=n;w.hidden=true;
   const lb=document.createElement("label");lb.htmlFor="f_"+it.id;lb.textContent=LABELS[it.id]||it.id;
   const inp=document.createElement("input");inp.id="f_"+it.id;inp.autocomplete="off";inp.spellcheck=false;
   inp.addEventListener("focus",()=>select(it.id));
-  inp.addEventListener("input",e=>{els[it.id].innerText=inp.value.replace(/[\/／]/g,"\n");clearTimeout(typingT);typingT=setTimeout(commit,600);countTyping(e)});
+  inp.addEventListener("input",e=>{if(it.id===lay.markId&&picImg)clearPic();els[it.id].innerText=inp.value.replace(/[\/／]/g,"\n");clearTimeout(typingT);typingT=setTimeout(commit,600);countTyping(e)});
   inp.addEventListener("blur",flush);
   inp.addEventListener("keydown",e=>{if(e.key==="Enter")inp.blur()});
-  w.append(lb,inp);$("fields").appendChild(w);flds[it.id]=w;
+  if(it.id===lay.markId){
+    const row=document.createElement("div");row.className="frow";
+    const pick=document.createElement("button");pick.type="button";pick.className="fbtn";pick.textContent="画像を選ぶ";
+    pick.onclick=()=>$("imgFile").click();
+    const clr=document.createElement("button");clr.type="button";clr.className="fbtn fclr";clr.textContent="外す";clr.hidden=true;
+    clr.onclick=()=>{clearPic();select(L.markId);commit()};
+    row.append(inp,pick,clr);w.append(lb,row);
+  }else w.append(lb,inp);
+  $("fields").appendChild(w);flds[it.id]=w;
 }));
 function syncField(id){const f=$("f_"+id);if(f&&document.activeElement!==f)f.value=textOf(id).replace(/\n/g,"/")}
 function syncFields(){L.items.forEach(it=>syncField(it.id))}
@@ -427,6 +439,7 @@ function unselect(){selected=null;Object.values(els).forEach(e=>e.classList.remo
 function picDims(){const r=Math.min(PIC.boxW/picImg.naturalWidth,PIC.boxH/picImg.naturalHeight)*PIC.scale/100;return [picImg.naturalWidth*r,picImg.naturalHeight*r]}
 function layoutPic(){
   const p=$("pic"),mark=els[L.markId];
+  document.querySelectorAll(".fclr").forEach(b=>{b.hidden=!picImg});
   if(!picImg){p.hidden=true;mark.hidden=false;$("clearImg").disabled=true;return}
   const [w,h]=picDims();
   p.style.left=PIC.x+"px";p.style.top=PIC.y+"px";p.style.width=w+"px";p.style.height=h+"px";
