@@ -613,12 +613,8 @@ $("saveBtn").onclick=saveFile;
 // ファイル画面
 const FILES=[
   {layout:"graph",texts:PRESETS[0],name:"会見ふう.pptx",when:"2026/11/02 15:28",where:"ドキュメント › 会見資料"},
-  {layout:"graph",texts:PRESETS[1],name:"体重.pptx",when:"2026/10/30 23:41",where:"ドキュメント › 個人"},
   {layout:"graph",texts:PRESETS[2],name:"残業.pptx",when:"2026/10/28 02:15",where:"ドキュメント › 決算"},
-  {layout:"wanted",texts:WANTED,name:"懸賞金.pptx",when:"2026/10/27 21:50",where:"ドキュメント › 広報"},
-  {layout:"graph",texts:PRESETS[3],name:"スマホ.pptx",when:"2026/10/25 01:07",where:"ドキュメント › 個人"},
-  {layout:"graph",texts:PRESETS[4],name:"お金.pptx",when:"2026/10/20 21:33",where:"ドキュメント › 家計"},
-  {layout:"graph",texts:PRESETS[5],name:"タイピング.pptx",when:"2026/07/14 09:00",where:"ドキュメント › 人事"}
+  {layout:"wanted",texts:WANTED,name:"懸賞金.pptx",when:"2026/10/27 21:50",where:"ドキュメント › 広報"}
 ];
 function thumb(cv,texts,layout){const c=cv.getContext("2d");c.setTransform(cv.width/1600,0,0,cv.height/900,0,0);renderSlide(c,texts,false,LAYOUTS[layout]);c.setTransform(1,0,0,1,0,0)}
 function closeBackstage(){$("backstage").hidden=true;requestAnimationFrame(fit)}
