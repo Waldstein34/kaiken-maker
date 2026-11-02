@@ -252,7 +252,6 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
   <p>画像を長押しすると保存できます</p>
   <div class="share-row">
     <button type="button" id="shareX" class="share-main">Xで共有</button>
-    <button type="button" id="shareText">文字だけで投稿</button>
     <button type="button" id="closeModal">閉じる</button>
   </div>
 </div>
@@ -505,7 +504,6 @@ $("shareX").onclick=async()=>{
   }catch(e){if(e&&e.name==="AbortError")return}
   openIntent();
 };
-$("shareText").onclick=openIntent;
 
 // 保存（このブラウザの中に保存）
 const STORE="kaiken-maker-files";
