@@ -348,6 +348,25 @@ function drawWanted(c){
   c.fillText("これはパロディです。実在の人物・団体・懸賞金とは関係ありません。",1180,854);
 }
 
+function drawShinpo(c){
+  c.fillStyle="#ffffff";c.fillRect(0,0,1600,900);
+  c.fillStyle="#1747a6";c.fillRect(0,0,1600,200);
+  c.fillStyle="#c8102e";c.fillRect(0,700,1600,200);
+  c.strokeStyle="#e8303a";c.lineWidth=12;c.lineCap="round";
+  c.beginPath();c.moveTo(262,70);c.lineTo(322,130);c.moveTo(322,70);c.lineTo(262,130);c.stroke();
+  c.beginPath();c.arc(950,100,34,0,Math.PI*2);c.stroke();
+  c.fillStyle="#ffe14d";c.fillRect(760,88,70,24);arrowHead(c,870,100,"right",40,"#ffe14d");
+  const ox=430,oy=560,xEnd=1110,vx=1175;
+  c.strokeStyle="#333333";c.lineWidth=5;
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(ox,320);c.stroke();arrowHead(c,ox,300,"up",24,"#333333");
+  c.beginPath();c.moveTo(ox,oy);c.lineTo(xEnd+40,oy);c.stroke();
+  c.strokeStyle="#c8102e";c.lineWidth=5;
+  c.beginPath();c.moveTo(ox+8,oy-5);c.lineTo(xEnd-10,oy-18);c.quadraticCurveTo(xEnd+40,oy-30,vx,300);c.stroke();
+  dbl(c,ox,xEnd-10,592,"#29a8e0");dbl(c,xEnd+10,vx+40,592,"#1747a6");
+  c.fillStyle="#29a8e0";c.fillRect(770-180,612,360,76);
+  c.fillStyle="#1747a6";c.fillRect(1157-90,612,180,76);
+}
+
 // スライドの種類ごとの文字の置き場所（1600×900の座標、中心基準）
 const LAYOUTS={
   graph:{
@@ -363,6 +382,22 @@ const LAYOUTS={
       {id:"longLabel",x:770,y:732,size:38,bold:true,color:"#ffffff"},
       {id:"shortLabel",x:1157,y:732,size:34,bold:true,color:"#ffffff"},
       {id:"caption",x:800,y:842,size:72,bold:true,color:"#ffffff",cap:true}
+    ]
+  },
+  shinpo:{
+    name:"shinpo",markId:"s_mark",shapes:drawShinpo,
+    pic:{x:900,y:390,scale:100,boxW:260,boxH:160},
+    hint:"スライドをタップか、下の欄で書き換え（「/」で改行）",
+    items:[
+      {id:"s_old",x:530,y:100,size:96,bold:true,color:"#ffe14d"},
+      {id:"s_new",x:1235,y:100,size:96,bold:true,color:"#ffe14d"},
+      {id:"s_title",x:800,y:250,size:42,bold:true,color:"#222222"},
+      {id:"s_y",x:300,y:430,size:40,bold:true,color:"#222222"},
+      {id:"s_x",x:1290,y:585,size:36,bold:true,color:"#222222"},
+      {id:"s_mark",x:900,y:400,size:80,bold:false,color:"#222222",emoji:true},
+      {id:"s_long",x:770,y:650,size:26,bold:true,color:"#ffffff"},
+      {id:"s_short",x:1157,y:650,size:24,bold:true,color:"#ffffff"},
+      {id:"s_big",x:800,y:800,size:150,bold:true,color:"#ffe14d"}
     ]
   },
   wanted:{
@@ -392,6 +427,7 @@ const PRESETS=[
   {yLabel:"タイピング数",xLabel:"時間",longLabel:"在宅勤務\n6年間",shortLabel:"原則出社\n1週間",bubble:"この1週間\n垂直",mark:"⌨️",markLabel:"原則出社の日〜",caption:"タイピングの発展が原因であります"}
 ];
 const WANTED={w_reward:"1,000,000 LIKES",w_logo:"SELFIE",w_bounty:"CRIME BOUNTY",w_band:"SELFIE CRIME BOUNTY",w_mark:"🤳",w_spread:"SPREAD THE WORD!",w_wanted:"WANTED!",w_for:"FOR",w_x:"✕",w_ai:"✦ AIで生成"};
+const SHINPO={s_old:"日進月歩",s_new:"秒進分歩",s_title:"成長スピードが変わった",s_y:"成長度",s_x:"時間",s_mark:"🤖",s_long:"インターネット\n28年間",s_short:"AI\n3年10ヶ月",s_big:"衝撃"};
 const BLANK={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間\nここに入力",shortLabel:"短い期間\n入力",bubble:"吹き出し\n入力",mark:"❔",markLabel:"小さい札",caption:"下の一言を入力"};
 const BLANK_W={w_reward:"金額を入力",w_logo:"名前",w_bounty:"見出しを入力",w_band:"帯の文字",w_mark:"❔",w_spread:"SPREAD THE WORD!",w_wanted:"WANTED!",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
 const COLORS=["#2b1d17","#ffffff","#c0392b","#3f5fae","#1e8449","#d68910"];
@@ -416,6 +452,7 @@ Object.values(LAYOUTS).forEach(lay=>lay.items.forEach(it=>{
 }));
 // 下の入力欄（スライドの文字と同じ内容。「/」で改行）
 const LABELS={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間",shortLabel:"短い期間",bubble:"吹き出し",mark:"真ん中の絵文字・画像",markLabel:"小さい札",caption:"下の一言",
+  s_old:"前の言葉（✕の横）",s_new:"新しい言葉（○の横）",s_title:"見出し",s_y:"縦の軸",s_x:"横の軸",s_mark:"絵文字・画像",s_long:"長い期間",s_short:"短い期間",s_big:"下の大きな文字",
   w_reward:"金額",w_logo:"青い文字",w_bounty:"見出し",w_band:"黒い帯",w_mark:"写真の枠の絵文字・画像",w_spread:"下の文字",w_wanted:"WANTED",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
 const flds={};
 const ORDER=["yLabel","xLabel","longLabel","shortLabel","bubble","markLabel","mark","caption"];
@@ -718,6 +755,7 @@ $("saveBtn").onclick=saveFile;
 // ファイル画面
 const FILES=[
   {layout:"graph",texts:PRESETS[0],name:"会見ふう.pptx",when:"2026/11/02 15:28",where:"ドキュメント › 会見資料"},
+  {layout:"shinpo",texts:SHINPO,name:"秒進分歩.pptx",when:"2026/11/02 15:31",where:"ドキュメント › 会見資料"},
   {layout:"graph",texts:PRESETS[2],name:"残業.pptx",when:"2026/10/28 02:15",where:"ドキュメント › 決算"},
   {layout:"wanted",texts:WANTED,name:"懸賞金.pptx",when:"2026/10/27 21:50",where:"ドキュメント › 広報"}
 ];
