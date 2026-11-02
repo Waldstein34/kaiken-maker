@@ -86,6 +86,8 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 .tx.sel{border-color:var(--select)}
 .pic{position:absolute;transform:translate(-50%,-50%);border:3px dashed transparent;cursor:pointer;max-width:none}
 .pic.sel{border-color:var(--select)}
+.hdl{position:absolute;width:var(--hs,100px);height:var(--hs,100px);transform:translate(-50%,-50%);border-radius:50%;background:#ffffff;border:calc(var(--hs,100px)*.14) solid #2b6fd6;box-sizing:border-box;touch-action:none;z-index:3;cursor:nwse-resize;box-shadow:0 0 calc(var(--hs,100px)*.12) rgba(0,0,0,.35)}
+.hdl[data-c="ne"],.hdl[data-c="sw"]{cursor:nesw-resize}
 .rb:disabled{opacity:.4;cursor:default}
 .tx.gold{background:linear-gradient(180deg,#fff6c4 0%,#f1cf5c 38%,#a8770f 52%,#e8c25a 70%,#fff0a8 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important;caret-color:#000}
 .tx.pill{background:#3f5fae;padding:10px 24px}
@@ -277,9 +279,7 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 <div class="modal" id="cropModal" hidden>
   <p class="crop-title">画像の切り取り・大きさ</p>
   <canvas id="cropCv" width="300" height="200"></canvas>
-  <p class="crop-hint">四すみの白い四角を動かすと、切り取る範囲が変わります。枠の中を動かすと、範囲ごと移動します。</p>
-  <label class="crop-size" for="cropScale">スライドでの大きさ <output id="cropScaleOut">100%</output></label>
-  <input type="range" id="cropScale" min="20" max="300" step="5" value="100">
+  <p class="crop-hint">四すみの白い四角を動かすと、切り取る範囲が変わります。枠の中を動かすと、範囲ごと移動します。大きさは、スライドの上で画像の四すみの丸を動かして変えます。</p>
   <div class="crop-row">
     <button type="button" id="cropReset">切り取りをやめる</button>
     <button type="button" id="cropCancel">キャンセル</button>
@@ -434,6 +434,22 @@ const COLORS=["#2b1d17","#ffffff","#c0392b","#3f5fae","#1e8449","#d68910"];
 const EMOJIS=["🤖","🤳","🕵️","⌨️","⏳","🍜","📊","💸","🔥","🙇"];
 const $=id=>document.getElementById(id);
 const stage=$("stage");
+// 画像の四すみの丸（ドラッグで大きさを変える）
+const hdls=["nw","ne","sw","se"].map(k=>{const h=document.createElement("div");h.className="hdl";h.dataset.c=k;h.hidden=true;h.setAttribute("aria-label","画像の大きさを変える");return h});
+function placeHdls(){
+  if(!picImg||selected!==PIC||$("pic").hidden){hdls.forEach(h=>{h.hidden=true});return}
+  const [w,h]=picDims();
+  hdls.forEach(d=>{const k=d.dataset.c;d.style.left=(PIC.x+(k[1]==="e"?w/2:-w/2))+"px";d.style.top=(PIC.y+(k[0]==="s"?h/2:-h/2))+"px";d.hidden=false});
+}
+let rz=null;
+function stagePt(e){const r=stage.getBoundingClientRect();return {x:(e.clientX-r.left)*1600/r.width,y:(e.clientY-r.top)*900/r.height}}
+hdls.forEach(d=>{
+  stage.appendChild(d);
+  d.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();const q=stagePt(e);rz={d0:Math.max(1,Math.hypot(q.x-PIC.x,q.y-PIC.y)),s0:PIC.scale};d.setPointerCapture(e.pointerId)});
+  d.addEventListener("pointermove",e=>{if(!rz)return;const q=stagePt(e);PIC.scale=Math.round(Math.max(20,Math.min(300,rz.s0*Math.hypot(q.x-PIC.x,q.y-PIC.y)/rz.d0)));layoutPic();$("sizeShow").textContent=PIC.scale+"%"});
+  const end=()=>{if(rz){rz=null;commit()}};
+  d.addEventListener("pointerup",end);d.addEventListener("pointercancel",end);
+});
 let L=LAYOUTS.graph,PIC=L.pic,selected=null,picImg=null,typingT=null;
 
 // 文字の箱を作る
@@ -496,17 +512,18 @@ function select(id){
   $("pic").classList.toggle("sel",id==="image");
   $("sizeShow").textContent=id==="image"?PIC.scale+"%":selected.size;
   $("bold").setAttribute("aria-pressed",String(!!selected.bold));
+  placeHdls();
 }
-function unselect(){selected=null;Object.values(els).forEach(e=>e.classList.remove("sel"));Object.values(flds).forEach(f=>f.classList.remove("on"));$("pic").classList.remove("sel");$("sizeShow").textContent="--"}
+function unselect(){selected=null;Object.values(els).forEach(e=>e.classList.remove("sel"));Object.values(flds).forEach(f=>f.classList.remove("on"));$("pic").classList.remove("sel");$("sizeShow").textContent="--";placeHdls()}
 function picDims(){const r=Math.min(PIC.boxW/picImg.naturalWidth,PIC.boxH/picImg.naturalHeight)*PIC.scale/100;return [picImg.naturalWidth*r,picImg.naturalHeight*r]}
 function layoutPic(){
   const p=$("pic"),mark=els[L.markId];
   document.querySelectorAll(".fclr").forEach(b=>{b.hidden=!picImg});
   $("editImg").disabled=!picImg;
-  if(!picImg){p.hidden=true;mark.hidden=false;$("clearImg").disabled=true;return}
+  if(!picImg){p.hidden=true;mark.hidden=false;$("clearImg").disabled=true;placeHdls();return}
   const [w,h]=picDims();
   p.style.left=PIC.x+"px";p.style.top=PIC.y+"px";p.style.width=w+"px";p.style.height=h+"px";
-  p.hidden=false;mark.hidden=true;$("clearImg").disabled=false;
+  p.hidden=false;mark.hidden=true;$("clearImg").disabled=false;placeHdls();
 }
 function clearPic(){picImg=null;layoutPic()}
 function fill(p){L.items.forEach(it=>{els[it.id].innerText=p[it.id]??""});syncFields()}
@@ -544,7 +561,7 @@ function fit(){
   const maxH=Math.max(160,work.clientHeight*.6);let w=work.clientWidth-parseFloat(getComputedStyle(work).paddingLeft)*2;
   if(w*9/16>maxH)w=maxH*16/9;
   box.style.width=Math.max(200,w)+"px";
-  const s=box.clientWidth/1600;stage.style.transform=`scale(${s})`;
+  const s=box.clientWidth/1600;stage.style.transform=`scale(${s})`;stage.style.setProperty("--hs",Math.round(30/s)+"px");
   $("zoom").textContent=Math.round(s*100)+"%";
 }
 window.addEventListener("resize",fit);
@@ -571,7 +588,6 @@ function openCrop(){
   const cv=$("cropCv");
   ck=Math.min(Math.min(window.innerWidth-32,640)/W,(window.innerHeight*.5)/H);
   cv.width=Math.max(1,Math.round(W*ck));cv.height=Math.max(1,Math.round(H*ck));
-  $("cropScale").value=PIC.scale;$("cropScaleOut").textContent=PIC.scale+"%";
   $("cropModal").hidden=false;drawCrop();
 }
 function drawCrop(){
@@ -610,11 +626,10 @@ $("cropCv").addEventListener("pointermove",e=>{
   drawCrop();
 });
 ["pointerup","pointercancel"].forEach(t=>$("cropCv").addEventListener(t,()=>{cdrag=null}));
-$("cropScale").addEventListener("input",()=>{$("cropScaleOut").textContent=$("cropScale").value+"%"});
 $("cropReset").onclick=()=>{crop={x:0,y:0,w:cropSrc.naturalWidth,h:cropSrc.naturalHeight};drawCrop()};
 $("cropCancel").onclick=()=>{$("cropModal").hidden=true};
 $("cropOk").onclick=()=>{
-  const W=cropSrc.naturalWidth,H=cropSrc.naturalHeight,scale=+$("cropScale").value;
+  const W=cropSrc.naturalWidth,H=cropSrc.naturalHeight,scale=PIC.scale;
   const full=crop.x<=0&&crop.y<=0&&crop.w>=W-.5&&crop.h>=H-.5;
   const apply=im=>{picImg=im;$("pic").src=im.src;PIC.scale=scale;layoutPic();select("image");commit()};
   $("cropModal").hidden=true;
