@@ -77,8 +77,8 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 .sw{width:20px;height:20px;border-radius:3px;border:1px solid var(--line);cursor:pointer;padding:0}
 .size{min-width:34px;text-align:center;font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:3px;padding:3px 2px;font-size:12px}
 
-.work{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding-block:10px;overflow:auto}
-.slidebox{position:relative;width:100%;max-width:1100px;margin:0 auto;aspect-ratio:16/9;box-shadow:0 1px 4px rgba(0,0,0,.35);background:#ffffff;overflow:hidden}
+.work{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start;gap:8px;padding-block:10px;overflow:auto}
+.slidebox{flex:none;position:relative;width:100%;max-width:1100px;margin:0 auto;aspect-ratio:16/9;box-shadow:0 1px 4px rgba(0,0,0,.35);background:#ffffff;overflow:hidden}
 .stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0}
 .stage canvas{position:absolute;inset:0;width:1600px;height:900px}
 .tx{position:absolute;transform:translate(-50%,-50%);white-space:pre;text-align:center;line-height:1.2;
@@ -90,6 +90,14 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 .tx.gold{background:linear-gradient(180deg,#fff6c4 0%,#f1cf5c 38%,#a8770f 52%,#e8c25a 70%,#fff0a8 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important;caret-color:#000}
 .tx.pill{background:#3f5fae;padding:10px 24px}
 .tx.cap{text-shadow:0 0 6px #000,3px 3px 0 #000,-3px -3px 0 #000,3px -3px 0 #000,-3px 3px 0 #000,0 4px 0 #000,0 -4px 0 #000,4px 0 0 #000,-4px 0 0 #000}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;width:100%;max-width:1100px;margin:0 auto;background:var(--ribbon);border:1px solid var(--line);border-radius:6px;padding:10px;box-sizing:border-box;flex:none}
+.fld{display:grid;gap:2px;min-width:0}
+.fld.wide{grid-column:1/-1}
+.fld label{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
+.fld input{font:inherit;font-size:16px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--chrome);color:var(--fg);width:100%;box-sizing:border-box;min-width:0}
+.fld input:focus{outline:2px solid var(--select);outline-offset:0}
+.fld.on label{color:var(--select)}
+.fld.on input{border-color:var(--select)}
 .hint{text-align:center;font-size:11.5px;color:var(--muted);margin:0}
 
 .status{background:var(--chrome);border-top:1px solid var(--line);padding-block:4px;display:flex;gap:14px;font-size:11px;color:var(--muted);align-items:center}
@@ -216,7 +224,8 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
   <div class="slidebox" id="slidebox">
     <div class="stage" id="stage"><canvas id="bg" width="1600" height="900"></canvas><img class="pic" id="pic" alt="挿入した画像" hidden></div>
   </div>
-  <p class="hint" id="hint">スライドの文字をタップすると書き換えられます</p>
+  <p class="hint" id="hint">スライドをタップか、下の欄で書き換え（「/」で改行）</p>
+  <div class="fields" id="fields"></div>
 </div>
 
 <div class="status pad">
@@ -317,7 +326,7 @@ const LAYOUTS={
   graph:{
     name:"graph",markId:"mark",shapes:drawGraph,
     pic:{x:900,y:310,scale:100,boxW:340,boxH:230},
-    hint:"スライドの文字をタップすると書き換えられます",
+    hint:"スライドをタップか、下の欄で書き換え（「/」で改行）",
     items:[
       {id:"yLabel",x:290,y:300,size:56,bold:true,color:C.ink},
       {id:"xLabel",x:1290,y:620,size:52,bold:true,color:C.ink},
@@ -374,10 +383,28 @@ Object.values(LAYOUTS).forEach(lay=>lay.items.forEach(it=>{
   d.style.left=it.x+"px";d.style.top=it.y+"px";
   stage.appendChild(d);els[it.id]=d;
   d.addEventListener("focus",()=>select(it.id));
-  d.addEventListener("input",e=>{clearTimeout(typingT);typingT=setTimeout(commit,600);countTyping(e)});
+  d.addEventListener("input",e=>{clearTimeout(typingT);typingT=setTimeout(commit,600);countTyping(e);syncField(it.id)});
   d.addEventListener("blur",flush);
   d.addEventListener("paste",e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData("text");document.execCommand("insertText",false,t)});
 }));
+// 下の入力欄（スライドの文字と同じ内容。「/」で改行）
+const LABELS={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間",shortLabel:"短い期間",bubble:"吹き出し",mark:"真ん中の絵文字",markLabel:"小さい札",caption:"下の一言",
+  w_reward:"金額",w_logo:"青い文字",w_bounty:"見出し",w_band:"黒い帯",w_mark:"写真の枠の絵文字",w_spread:"下の文字",w_wanted:"WANTED",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
+const flds={};
+const ORDER=["yLabel","xLabel","longLabel","shortLabel","bubble","mark","markLabel","caption"];
+const ord=it=>{const k=ORDER.indexOf(it.id);return k<0?99:k};
+Object.entries(LAYOUTS).forEach(([n,lay])=>[...lay.items].sort((a,b)=>ord(a)-ord(b)).forEach(it=>{
+  const w=document.createElement("div");w.className="fld"+(it.id==="caption"?" wide":"");w.dataset.id=it.id;w.dataset.layout=n;w.hidden=true;
+  const lb=document.createElement("label");lb.htmlFor="f_"+it.id;lb.textContent=LABELS[it.id]||it.id;
+  const inp=document.createElement("input");inp.id="f_"+it.id;inp.autocomplete="off";inp.spellcheck=false;
+  inp.addEventListener("focus",()=>select(it.id));
+  inp.addEventListener("input",e=>{els[it.id].innerText=inp.value.replace(/[\/／]/g,"\n");clearTimeout(typingT);typingT=setTimeout(commit,600);countTyping(e)});
+  inp.addEventListener("blur",flush);
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter")inp.blur()});
+  w.append(lb,inp);$("fields").appendChild(w);flds[it.id]=w;
+}));
+function syncField(id){const f=$("f_"+id);if(f&&document.activeElement!==f)f.value=textOf(id).replace(/\n/g,"/")}
+function syncFields(){L.items.forEach(it=>syncField(it.id))}
 function famOf(it){return it.emoji?EMOJI_FONT+","+FONT:it.font==="anton"?ANTON:it.serif?SERIF:FONT}
 function styleItem(it){
   const d=els[it.id];
@@ -391,11 +418,12 @@ function select(id){
   selected=id==="image"?PIC:L.items.find(i=>i.id===id);
   if(!selected)return;
   Object.values(els).forEach(e=>e.classList.toggle("sel",e.dataset.id===id));
+  Object.values(flds).forEach(f=>f.classList.toggle("on",f.dataset.id===id));
   $("pic").classList.toggle("sel",id==="image");
   $("sizeShow").textContent=id==="image"?PIC.scale+"%":selected.size;
   $("bold").setAttribute("aria-pressed",String(!!selected.bold));
 }
-function unselect(){selected=null;Object.values(els).forEach(e=>e.classList.remove("sel"));$("pic").classList.remove("sel");$("sizeShow").textContent="--"}
+function unselect(){selected=null;Object.values(els).forEach(e=>e.classList.remove("sel"));Object.values(flds).forEach(f=>f.classList.remove("on"));$("pic").classList.remove("sel");$("sizeShow").textContent="--"}
 function picDims(){const r=Math.min(PIC.boxW/picImg.naturalWidth,PIC.boxH/picImg.naturalHeight)*PIC.scale/100;return [picImg.naturalWidth*r,picImg.naturalHeight*r]}
 function layoutPic(){
   const p=$("pic"),mark=els[L.markId];
@@ -405,11 +433,11 @@ function layoutPic(){
   p.hidden=false;mark.hidden=true;$("clearImg").disabled=false;
 }
 function clearPic(){picImg=null;layoutPic()}
-function fill(p){L.items.forEach(it=>{els[it.id].innerText=p[it.id]??""})}
+function fill(p){L.items.forEach(it=>{els[it.id].innerText=p[it.id]??""});syncFields()}
 function drawBg(){L.shapes($("bg").getContext("2d"))}
 function setLayout(name){
   L=LAYOUTS[name];PIC=L.pic;
-  Object.entries(LAYOUTS).forEach(([n,lay])=>lay.items.forEach(it=>{els[it.id].hidden=n!==name}));
+  Object.entries(LAYOUTS).forEach(([n,lay])=>lay.items.forEach(it=>{els[it.id].hidden=n!==name;flds[it.id].hidden=n!==name}));
   picImg=null;layoutPic();unselect();drawBg();
   $("hint").textContent=L.hint;$("hint").hidden=!L.hint;
 }
@@ -427,7 +455,7 @@ COLORS.forEach(col=>{const b=document.createElement("button");b.type="button";b.
   b.onclick=()=>{if(!selected||selected===PIC)return;selected.color=col;selected.gold=false;styleItem(selected);commit()};$("swatches").appendChild(b)});
 EMOJIS.forEach(em=>{const b=document.createElement("button");b.type="button";b.className="rb";b.textContent=em;b.setAttribute("aria-label","絵文字 "+em);
   b.addEventListener("mousedown",e=>e.preventDefault());
-  b.onclick=()=>{clearPic();els[L.markId].innerText=em;select(L.markId);commit()};$("emojis").appendChild(b)});
+  b.onclick=()=>{clearPic();els[L.markId].innerText=em;syncField(L.markId);select(L.markId);commit()};$("emojis").appendChild(b)});
 document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{if(L!==LAYOUTS.graph)setLayout("graph");fill(PRESETS[+b.dataset.p]);commit()});
 document.querySelectorAll(".tabs [data-tab]").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".tabs [data-tab]").forEach(x=>x.setAttribute("aria-selected",String(x===t)));
@@ -437,7 +465,7 @@ document.querySelectorAll(".tabs [data-tab]").forEach(t=>t.onclick=()=>{
 // スライドの大きさを画面幅に合わせる
 function fit(){
   const box=$("slidebox"),work=document.querySelector(".work");
-  const maxH=work.clientHeight-40;let w=work.clientWidth-parseFloat(getComputedStyle(work).paddingLeft)*2;
+  const maxH=Math.max(160,work.clientHeight*.6);let w=work.clientWidth-parseFloat(getComputedStyle(work).paddingLeft)*2;
   if(w*9/16>maxH)w=maxH*16/9;
   box.style.width=Math.max(200,w)+"px";
   const s=box.clientWidth/1600;stage.style.transform=`scale(${s})`;
