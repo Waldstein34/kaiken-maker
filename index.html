@@ -94,6 +94,9 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 
 .status{background:var(--chrome);border-top:1px solid var(--line);padding-block:4px;display:flex;gap:14px;font-size:11px;color:var(--muted);align-items:center}
 .status .grow{flex:1}
+.status b{font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums}
+#typeMeter.suspect,#typeMeter.suspect b{color:#c0392b;font-weight:700}
+.status{overflow-x:auto;white-space:nowrap}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:20;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -199,6 +202,7 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
       <button class="rb big" type="button" data-p="2"><span class="ic">🌙</span>残業</button>
       <button class="rb big" type="button" data-p="3"><span class="ic">📱</span>スマホ</button>
       <button class="rb big" type="button" data-p="4"><span class="ic">💴</span>お金</button>
+      <button class="rb big" type="button" data-p="5"><span class="ic">⌨️</span>タイピング</button>
     </div>
     <span class="cap">お手本</span>
   </div>
@@ -216,7 +220,7 @@ body{background:var(--work);color:var(--fg);font-family:var(--ui);font-size:13px
 </div>
 
 <div class="status pad">
-  <span>スライド 1/1</span><span>日本語</span><span class="grow"></span><span id="zoom">100%</span>
+  <span>スライド 1/1</span><span id="typeMeter" title="タイピング数">⌨ タイピング数 <b id="typeCount">0</b></span><span id="sand" title="命の砂時計">⏳ 命の砂時計 <b id="sandPct">100%</b></span><span class="grow"></span><span id="zoom">100%</span>
 </div>
 
 <div class="backstage" id="backstage" hidden>
@@ -348,13 +352,14 @@ const PRESETS=[
   {yLabel:"体重",xLabel:"年齢",longLabel:"学生時代\n22年間",shortLabel:"社会人\n3年",bubble:"この半年\n垂直",mark:"🍜",markLabel:"深夜ラーメン解禁",caption:"ラーメンの発展が原因であります"},
   {yLabel:"残業時間",xLabel:"月日",longLabel:"平和な日々\n11ヶ月",shortLabel:"決算期\n1ヶ月",bubble:"この1週間\n垂直",mark:"📊",markLabel:"上司の思いつき",caption:"Excelの発展が原因であります"},
   {yLabel:"スクリーンタイム",xLabel:"年数",longLabel:"ガラケー時代\n10年間",shortLabel:"ショート動画\n1年",bubble:"この3ヶ月\n垂直",mark:"📱",markLabel:"おすすめに出てきた日〜",caption:"ショート動画の発展が原因であります"},
-  {yLabel:"使ったお金",xLabel:"年数",longLabel:"現金払い\n20年間",shortLabel:"タッチ決済\n3年",bubble:"この半年\n垂直",mark:"💴",markLabel:"財布を持たなくなった日〜",caption:"キャッシュレスの発展が原因であります"}
+  {yLabel:"使ったお金",xLabel:"年数",longLabel:"現金払い\n20年間",shortLabel:"タッチ決済\n3年",bubble:"この半年\n垂直",mark:"💴",markLabel:"財布を持たなくなった日〜",caption:"キャッシュレスの発展が原因であります"},
+  {yLabel:"タイピング数",xLabel:"時間",longLabel:"在宅勤務\n6年間",shortLabel:"原則出社\n1週間",bubble:"この1週間\n垂直",mark:"⌨️",markLabel:"原則出社の日〜",caption:"タイピングの発展が原因であります"}
 ];
 const WANTED={w_reward:"1,000,000 LIKES",w_logo:"SELFIE",w_bounty:"CRIME BOUNTY",w_band:"SELFIE CRIME BOUNTY",w_mark:"🤳",w_spread:"SPREAD THE WORD!",w_wanted:"WANTED!",w_for:"FOR",w_x:"✕",w_ai:"✦ AIで生成"};
 const BLANK={yLabel:"縦の軸",xLabel:"横の軸",longLabel:"長い期間\nここに入力",shortLabel:"短い期間\n入力",bubble:"吹き出し\n入力",mark:"❔",markLabel:"小さい札",caption:"下の一言を入力"};
 const BLANK_W={w_reward:"金額を入力",w_logo:"名前",w_bounty:"見出しを入力",w_band:"帯の文字",w_mark:"❔",w_spread:"SPREAD THE WORD!",w_wanted:"WANTED!",w_for:"FOR",w_x:"罪状",w_ai:"ひとこと"};
 const COLORS=["#2b1d17","#ffffff","#c0392b","#3f5fae","#1e8449","#d68910"];
-const EMOJIS=["🤖","🤳","🕵️","🍜","📊","💸","🔥","🙇"];
+const EMOJIS=["🤖","🤳","🕵️","⌨️","⏳","🍜","📊","💸","🔥","🙇"];
 const $=id=>document.getElementById(id);
 const stage=$("stage");
 let L=LAYOUTS.graph,PIC=L.pic,selected=null,picImg=null,typingT=null;
@@ -369,7 +374,7 @@ Object.values(LAYOUTS).forEach(lay=>lay.items.forEach(it=>{
   d.style.left=it.x+"px";d.style.top=it.y+"px";
   stage.appendChild(d);els[it.id]=d;
   d.addEventListener("focus",()=>select(it.id));
-  d.addEventListener("input",()=>{clearTimeout(typingT);typingT=setTimeout(commit,600)});
+  d.addEventListener("input",e=>{clearTimeout(typingT);typingT=setTimeout(commit,600);countTyping(e)});
   d.addEventListener("blur",flush);
   d.addEventListener("paste",e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData("text");document.execCommand("insertText",false,t)});
 }));
@@ -453,7 +458,31 @@ $("pic").addEventListener("click",()=>{if(document.activeElement)document.active
 
 // 書き出し
 function currentTexts(){const o={};L.items.forEach(it=>o[it.id]=textOf(it.id));return o}
+// タイピング数メーター（しばらく打たないと在宅勤務を疑われる）
+let typeCount=0,idleT=null;
+function countTyping(e){
+  typeCount+=e&&e.data?[...e.data].length:1;
+  $("typeCount").textContent=typeCount;
+  const m=$("typeMeter");m.classList.remove("suspect");m.firstChild.textContent="⌨ タイピング数 ";
+  clearTimeout(idleT);idleT=setTimeout(suspect,15000);
+}
+function suspect(){const m=$("typeMeter");m.classList.add("suspect");m.firstChild.textContent="⌨ 在宅勤務の疑い ";}
+$("fileName").addEventListener("input",countTyping);
+idleT=setTimeout(suspect,15000);
+// 命の砂時計（書き出すたびに砂が減る）
+let sand=100;
+try{const v=parseInt(localStorage.getItem("kaiken-maker-sand"),10);if(v>0&&v<=100)sand=v}catch(e){}
+function showSand(){$("sandPct").textContent=sand+"%"}
+function useSand(){
+  sand-=10;
+  if(sand<=0){sand=100;toast("命の砂時計を使い切りました。同じ書き出しで、皆様の命の砂時計を無駄遣いさせてしまいました")}
+  else if(sand<=30)toast("命の砂時計が残り"+sand+"%です");
+  try{localStorage.setItem("kaiken-maker-sand",String(sand))}catch(e){}
+  showSand();
+}
+showSand();
 function exportImage(){
+  useSand();
   const cv=document.createElement("canvas");cv.width=1600;cv.height=900;
   renderSlide(cv.getContext("2d"),currentTexts(),true,L);
   $("outImg").src=cv.toDataURL("image/png");$("modal").hidden=false;
@@ -560,7 +589,8 @@ const FILES=[
   {layout:"graph",texts:PRESETS[2],name:"残業.pptx",when:"2026/10/28 02:15",where:"ドキュメント › 決算"},
   {layout:"wanted",texts:WANTED,name:"懸賞金.pptx",when:"2026/10/27 21:50",where:"ドキュメント › 広報"},
   {layout:"graph",texts:PRESETS[3],name:"スマホ.pptx",when:"2026/10/25 01:07",where:"ドキュメント › 個人"},
-  {layout:"graph",texts:PRESETS[4],name:"お金.pptx",when:"2026/10/20 21:33",where:"ドキュメント › 家計"}
+  {layout:"graph",texts:PRESETS[4],name:"お金.pptx",when:"2026/10/20 21:33",where:"ドキュメント › 家計"},
+  {layout:"graph",texts:PRESETS[5],name:"タイピング.pptx",when:"2026/07/14 09:00",where:"ドキュメント › 人事"}
 ];
 function thumb(cv,texts,layout){const c=cv.getContext("2d");c.setTransform(cv.width/1600,0,0,cv.height/900,0,0);renderSlide(c,texts,false,LAYOUTS[layout]);c.setTransform(1,0,0,1,0,0)}
 function closeBackstage(){$("backstage").hidden=true;requestAnimationFrame(fit)}
